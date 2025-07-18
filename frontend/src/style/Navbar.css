@@ -1,0 +1,65 @@
+/* Navbar.css */
+
+/* ===== NAVBAR CONTAINER ===== */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: #2563eb; /* blue-600 */
+  color: white;
+  transition: background-color 0.4s ease;
+}
+
+/* Dark mode background for navbar */
+body.dark .navbar {
+  background-color: #1f2937; /* a deeper blue-gray */
+}
+
+/* ===== TITLE ===== */
+.navbar-title {
+  font-size: 1.25rem; /* text-xl */
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  color: white;
+}
+
+.logo-icon {
+  color: #ef4444; /* red-500 */
+  margin-right: 6px;
+  font-size: 1.3rem;
+}
+
+/* ===== NAV LINKS ===== */
+.navbar-links {
+  display: flex;
+  gap: 24px; /* space-x-6 */
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s, text-decoration 0.3s;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+/* Dark mode link override */
+body.dark .nav-link {
+  color: #e5e5e5;
+}
+
+.icon-wrapper {
+  transition: transform 0.4s ease, color 0.3s ease;
+}
+
+.rotate {
+  transform: rotate(360deg);
+}
+
+.rotate-back {
+  transform: rotate(-360deg);
+}

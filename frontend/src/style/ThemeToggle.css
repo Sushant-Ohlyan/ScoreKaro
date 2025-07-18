@@ -1,0 +1,26 @@
+/* src/style/ThemeToggle.css */
+
+.theme-toggle {
+  cursor: pointer;
+  font-size: 1.5rem;
+  margin-left: 1rem;
+  display: flex;
+  align-items: center;
+  color: white;
+}
+
+body.dark .theme-toggle {
+  color: yellow;
+}
+
+.icon-wrapper {
+  transition: transform 0.4s ease, color 0.3s ease;
+}
+
+.rotate {
+  transform: rotate(360deg);
+}
+
+.rotate-back {
+  transform: rotate(-360deg);
+}

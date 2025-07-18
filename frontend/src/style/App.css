@@ -1,0 +1,20 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f0f0f0; /* Light background */
+  color: #333; /* Dark text */
+}
+
+body {
+  transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark {
+  background-color: #1e1e1e;
+  color: white;
+}
+
+body.dark a {
+  color: #90cdf4; /* Light blue for links */
+}
