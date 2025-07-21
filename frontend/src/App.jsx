@@ -6,13 +6,17 @@ import Contact from './components/Contact';
 import Teams from './components/Teams';
 import Matches from './components/Matches';
 import { Routes, Route } from 'react-router-dom';
+import Login from './components/Login';
+import Register from './components/Register'; 
 
 function App() {
   return (
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/matches" element={<Matches />} />
         <Route path="/teams" element={<Teams />} />
         <Route path="/about" element={<About />} />

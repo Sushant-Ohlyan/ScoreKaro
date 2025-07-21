@@ -6,7 +6,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background-color: #2563eb; /* blue-600 */
+  /* background-color: #01194d; blue-600 */
+  background: linear-gradient(to right, #01194d, #0953a7);
+
   color: white;
   transition: background-color 0.4s ease;
 }

@@ -9,7 +9,7 @@ const Navbar = () => {
         <span className="logo-icon">🏏</span> SCOREKARO
       </div>
       <div className="navbar-links">
-        <Link to="/" className="nav-link">Home</Link>
+        <Link to="/home" className="nav-link">Home</Link>
         <Link to="/matches" className="nav-link">Matches</Link>
         <Link to="/teams" className="nav-link">Teams</Link>
         <Link to="/about" className="nav-link">About</Link>
