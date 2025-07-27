@@ -7,20 +7,24 @@ import Teams from './components/Teams';
 import Matches from './components/Matches';
 import { Routes, Route } from 'react-router-dom';
 import Login from './components/Login';
-import Register from './components/Register'; 
+import Signup from './components/Singup'; 
+import Match from './components/Match';
+import CreateTeam from './components/CreateTeam';
 
 function App() {
   return (
     <>
-      <Navbar />
+    <Navbar />
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/matches" element={<Matches />} />
         <Route path="/teams" element={<Teams />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/match" element={<Match />} />
+        <Route path="/create-team" element={<CreateTeam />} />
       </Routes>
       <Footer />
     </>

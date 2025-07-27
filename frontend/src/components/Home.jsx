@@ -1,9 +1,12 @@
 import React from 'react';
 import '../style/Home.css'; // Make sure to create this CSS file
 import a from '../assets/a.png';
+import Navbar from './Navbar'; // Assuming you have a Navbar component
 
 const Home = () => {
   return (
+    <>
+    
     <div className="home-container">
       <div className="home-content">
         <img src={a} alt="Cricket Player" className="home-image" />
@@ -13,6 +16,7 @@ const Home = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

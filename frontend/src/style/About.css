@@ -1,0 +1,32 @@
+.about-page {
+  /* Blue to black gradient background */
+  background: linear-gradient(135deg, #2563eb, #000000);
+  min-height: 100vh;
+  padding: 40px 20px;
+
+  display: flex;
+  justify-content: center; /* center horizontally */
+  align-items: flex-start; /* align near top */
+}
+
+.about-container {
+  background: rgba(255, 255, 255, 0.9); /* white box with slight transparency */
+  max-width: 700px;
+  width: 100%;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.about-container h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #1e3a8a; /* deep blue for heading */
+}
+
+.about-container p {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  color: #333;
+}
