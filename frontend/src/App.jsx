@@ -10,6 +10,10 @@ import Login from './components/Login';
 import Signup from './components/Singup'; 
 import Match from './components/Match';
 import CreateTeam from './components/CreateTeam';
+import InningSummary from './components/InningSummary';
+import Scorecard from './components/Scorecard';
+import Test from './components/Test';
+import Test2 from './components/Test2';
 
 function App() {
   return (
@@ -24,7 +28,11 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/match" element={<Match />} />
+        <Route path="/inning-summary" element={<InningSummary />} />
         <Route path="/create-team" element={<CreateTeam />} />
+        <Route path="/scorecard" element={<Scorecard />} />
+        <Route path="/test" element={<Test />} />
+        <Route path="/test2" element={<Test2 />} />
       </Routes>
       <Footer />
     </>

@@ -1,0 +1,56 @@
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+mongoose.connect("mongodb://127.0.0.1:27017/cricket", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const matchSchema = new mongoose.Schema({
+  teamA: String,
+  teamB: String,
+  inning: Number,
+  score: Number,
+  overs: String,
+  wickets: Number,
+  runRate: Number,
+  topScorer: String,
+  topPerformerBat: String,
+  topPerformerBall: String,
+  mostWickets: String,
+  bestFielder: String,
+}, { timestamps: true });
+
+const playerSchema = new mongoose.Schema({
+  matchId: mongoose.Types.ObjectId,
+  name: String,
+  runs: Number,
+  balls: Number,
+  strikeRate: Number,
+  wickets: Number,
+  catches: Number,
+});
+
+const Match = mongoose.model("Match", matchSchema);
+const Player = mongoose.model("Player", playerSchema);
+
+// Routes
+app.get("/api/match/details", async (req, res) => {
+  const match = await Match.findOne().sort({ updatedAt: -1 });
+  res.json(match);
+});
+
+app.get("/api/match/scorecard", async (req, res) => {
+  const match = await Match.findOne().sort({ updatedAt: -1 });
+  const players = await Player.find({ matchId: match._id });
+  res.json(players);
+});
+
+app.listen(5000, () => {
+  console.log("Server running on http://localhost:5000");
+});
