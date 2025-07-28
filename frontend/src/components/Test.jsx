@@ -1,195 +1,434 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import '../style/Test.css';
+
+// Utilities for default names
+const getDefaultBatsmen = () =>
+  Array.from({ length: 11 }, (_, i) => ({
+    name: `batsman${i + 1}`,
+    runs: 0,
+    balls: 0,
+  }));
+
+const getDefaultBowlers = () =>
+  Array.from({ length: 11 }, (_, i) => ({
+    name: `bowler${i + 1}`,
+    runs: 0,
+    balls: 0,
+    wickets: 0,
+  }));
 
 const Test = () => {
-    const navigate = useNavigate();
-    const [currentWicket, setCurrentWicket] = useState(0);
-    const [overs, setOvers] = useState(0);
-    const [teamAName, setTeamAName] = useState("Team A");
-    const [teamBName, setTeamBName] = useState("Team B"); 
-    const [venueName, setVenueName] = useState("Stadium Name");
-    const [currentBattingTeam, setCurrentBattingTeam] = useState("Team A");
-    const [currentBattingTeamScore, setCurrentBattingTeamScore] = useState(0);
-    const [currentWicketCount, setCurrentWicketCount] = useState(0);
-    const [oversCount, setOversCount] = useState(0);
-    const [ballsCount, setBallsCount] = useState(0);
-    const [ballHistory, setBallHistory] = useState([]);
-    const [batsmen, setBatsmen] = useState(["batsman1", "batsman2"]);
-    const [bowler, setBowler] = useState("bowler1");
-    const [runTaken, setRunTaken] = useState(0);
-    const [wicketTaken, setWicketTaken] = useState(0);
-    const [currentBatsman, setCurrentBatsman] = useState(batsmen[0]);
-    const [currentBowler, setCurrentBowler] = useState(bowler);
+  const navigate = useNavigate();
 
-      const legalBallPlayed = () => {
-    setBalls(prev => {
+  // Core state
+  const [teamAName] = useState("Team A");
+  const [teamBName] = useState("Team B");
+  const [venueName] = useState("Stadium Name");
+  const [currentBattingTeam] = useState("Team A");
+
+  const [currentBattingTeamScore, setCurrentBattingTeamScore] = useState(0);
+  const [currentWicketCount, setCurrentWicketCount] = useState(0);
+  // Only ballsCount is needed for overs/balls display & logic
+  const [ballsCount, setBallsCount] = useState(0);
+
+  // Batting state
+  const [batsmen, setBatsmen] = useState(getDefaultBatsmen());
+  const [onStrikeIdx, setOnStrikeIdx] = useState(0);
+  const [offStrikeIdx, setOffStrikeIdx] = useState(1);
+  const [nextBatsmanNum, setNextBatsmanNum] = useState(2);
+  const [showBatsmanDropdown, setShowBatsmanDropdown] = useState(false);
+  const [selectedNextBatsmanIdx, setSelectedNextBatsmanIdx] = useState(null);
+
+  // Bowling state
+  const [bowlers, setBowlers] = useState(getDefaultBowlers());
+  const [currentBowlerIdx, setCurrentBowlerIdx] = useState(0);
+  const [showBowlerDropdown, setShowBowlerDropdown] = useState(false);
+  const [selectedNextBowlerIdx, setSelectedNextBowlerIdx] = useState(null);
+
+  // Extras
+  const [extraType, setExtraType] = useState(null);
+  const [extraRun, setExtraRun] = useState(1);
+
+  // Log: save snapshots for undo
+  const [ballHistory, setBallHistory] = useState([]);
+
+  // Derived for display
+  const oversDisplay = `${Math.floor(ballsCount / 6)}.${ballsCount % 6}`;
+
+  // Helpers for undo: get deep snapshot of all key states
+  const getSnapshot = () => ({
+    currentBattingTeamScore,
+    currentWicketCount,
+    ballsCount,
+    batsmen: JSON.parse(JSON.stringify(batsmen)),
+    onStrikeIdx,
+    offStrikeIdx,
+    nextBatsmanNum,
+    bowlers: JSON.parse(JSON.stringify(bowlers)),
+    currentBowlerIdx,
+    showBatsmanDropdown,
+    showBowlerDropdown,
+  });
+
+  // Restore all key states from snapshot (for undo)
+  const restoreSnapshot = (snap) => {
+    setCurrentBattingTeamScore(snap.currentBattingTeamScore);
+    setCurrentWicketCount(snap.currentWicketCount);
+    setBallsCount(snap.ballsCount);
+    setBatsmen(snap.batsmen);
+    setOnStrikeIdx(snap.onStrikeIdx);
+    setOffStrikeIdx(snap.offStrikeIdx);
+    setNextBatsmanNum(snap.nextBatsmanNum);
+    setBowlers(snap.bowlers);
+    setCurrentBowlerIdx(snap.currentBowlerIdx);
+    setShowBatsmanDropdown(snap.showBatsmanDropdown);
+    setShowBowlerDropdown(snap.showBowlerDropdown);
+  };
+
+  // --- Stats Helpers ---
+
+  // Batsman - update by runs/balls (e.g. for run scored or not)
+  const addBatStats = (idx, runs, balls = 1) => {
+    setBatsmen((bs) =>
+      bs.map((b, i) =>
+        i === idx
+          ? { ...b, runs: b.runs + runs, balls: b.balls + balls }
+          : b
+      )
+    );
+  };
+
+  // Bowler - update by runs, balls, wickets
+  const addBowlerStats = (idx, runs, balls = 1, wickets = 0) => {
+    setBowlers((bw) =>
+      bw.map((b, i) =>
+        i === idx
+          ? {
+              ...b,
+              runs: b.runs + runs,
+              balls: b.balls + balls,
+              wickets: b.wickets + wickets,
+            }
+          : b
+      )
+    );
+  };
+
+  // --- Strike Swap ---
+  const swapStrike = () => {
+    setOnStrikeIdx((nowOn) => {
+      setOffStrikeIdx(nowOn);
+      return offStrikeIdx;
+    });
+  };
+
+  // --- Ball and Over Management ---
+
+  // Legal delivery: always increments ballsCount (called for run, wicket, bye, lb)
+  const legalBallPlayed = () => {
+    setBallsCount((prev) => {
       const newBalls = prev + 1;
-      if ((newBalls % 6) === 0) {
-        setOvers(prev => prev + 1);
-        setBowlerStats(stats => ({
-          ...stats,
-          overs: stats.overs + 1
-        }));
-      }
+      if ((newBalls % 6) === 0) setShowBowlerDropdown(true);
       return newBalls;
     });
   };
 
-  const updateBatsmanRun = (runs) => {
-    setBatsmen(prev => {
-      const updated = prev.map(b =>
-        b.name === currentBatsman ? { ...b, runs: b.runs + runs } : b
-      );
-      return updated;
-    });
-  };
-  const swapStrike = () => {
-    setBatsmen(([on, off]) => {
-      setCurrentBatsman(off.name);
-      return [off, on];
-    });
-  };
-    
-    const handleRun = (runs) => {
-        let logMessage='';
-        const ballNumber='${oversCount}.${ballsCount % 6}';
-        if (runs===1 || runs===3){
-            if (runs === 1) {
-                logMessage = `${ballNumber} - ${runs} RUN - Single taken by ${currentBatsman}`;
-            }
-            else {
-                logMessage = `${ballNumber} - ${runs} RUNS - Three runs taken by ${currentBatsman}`;
-            }
-            const temp= currentBatsman;
-            setCurrentBatsman(batsmen[1]);
-            setBatsmen(temp);
-        }
-        else if (runs === 2) {
-            logMessage = `${ballNumber} - ${runs} RUNS - Two runs taken by ${currentBatsman}`;
-        } else if (runs === 4) {
-            logMessage = `${ballNumber} - ${runs} RUNS - Beautiful drive through covers by ${currentBatsman}`;
-        } else if (runs === 6) {
-            logMessage = `${ballNumber} - ${runs} RUNS - Massive six over long on by ${currentBatsman}`;
-        }
+  // --- MAIN BUTTONS ---
 
-        setCurrentBattingTeamScore(prev => prev + runs);
-        setBallHistory([...ballHistory, {type: 'run', value:runs , log:logMessage}]);
-        legalBallPlayed();
-    }
+  const handleRun = (runs) => {
+    // Save snapshot for undo
+    const snapshot = getSnapshot();
 
-    const handleWicket = () => {
-    const log = `${currentBall} - WICKET - Bowled by ${bowler}, ${currentBatsman} OUT`;
+    const ballNum = `${Math.floor(ballsCount / 6)}.${ballsCount % 6 + 1}`;
+    let commentary = runs === 4
+      ? `${ballNum} - FOUR by ${batsmen[onStrikeIdx].name}`
+      : runs === 6
+      ? `${ballNum} - SIX by ${batsmen[onStrikeIdx].name}`
+      : `${ballNum} - ${runs} RUN${runs > 1 ? "S" : ""} by ${batsmen[onStrikeIdx].name}`;
 
-    setWickets(prev => prev + 1);
-    setBowlerStats(stats => ({ ...stats, wickets: stats.wickets + 1 }));
+    setCurrentBattingTeamScore((s) => s + runs);
+    addBatStats(onStrikeIdx, runs, 1);
+    addBowlerStats(currentBowlerIdx, runs, 1);
 
-    setBallHistory(prev => [...prev, { type: 'wicket', log }]);
+    setBallHistory((prev) => [
+      ...prev,
+      {
+        type: "run",
+        value: runs,
+        snapshot,
+        log: commentary,
+      }
+    ]);
+
     legalBallPlayed();
 
-    setCurrentBatsman(batsmen[1].name); // Temporary handling
+    if (runs % 2 === 1) swapStrike();
   };
 
-    const handleUndo = () => {
+  const handleWicket = () => {
+    // Save snapshot for undo
+    const snapshot = getSnapshot();
+
+    const ballNum = `${Math.floor(ballsCount / 6)}.${ballsCount % 6 + 1}`;
+    const commentary = `${ballNum} - WICKET! ${batsmen[onStrikeIdx].name} OUT, bowled by ${bowlers[currentBowlerIdx].name}`;
+    setCurrentWicketCount((w) => w + 1);
+    addBowlerStats(currentBowlerIdx, 0, 1, 1);
+
+    setBallHistory((prev) => [
+      ...prev,
+      {
+        type: "wicket",
+        snapshot,
+        log: commentary,
+      }
+    ]);
+
+    legalBallPlayed();
+
+    setShowBatsmanDropdown(true);
+    setSelectedNextBatsmanIdx(null);
+  };
+
+  // --- EXTRAS ---
+
+  const handleExtraType = (type) => {
+    setExtraType(type);
+    setExtraRun(1);
+  };
+
+  // Extras - submit and record
+  const submitExtraRun = () => {
+    if (!extraType) return;
+
+    // Save snapshot for undo
+    const snapshot = getSnapshot();
+
+    const desc = { nb: "NO BALL", wide: "WIDE", bye: "BYE", lb: "LEG BYE" }[extraType];
+    const ballNum = `${Math.floor(ballsCount / 6)}.${ballsCount % 6 + 1}`;
+
+    setCurrentBattingTeamScore((s) => s + extraRun);
+    // Add to bowler's runs (ball is legal only for bye/lb)
+    addBowlerStats(currentBowlerIdx, extraRun, (extraType === "bye" || extraType === "lb") ? 1 : 0);
+
+    setBallHistory((prev) => [
+      ...prev,
+      {
+        type: "extra",
+        value: extraRun,
+        subtype: extraType,
+        snapshot,
+        log: `${ballNum} - ${desc} + ${extraRun - 1}`,
+      }
+    ]);
+
+    setExtraType(null);
+    setExtraRun(1);
+
+    // Only bye or lb are legal deliveries (increment balls)
+    if (extraType === "bye" || extraType === "lb") {
+      legalBallPlayed();
+    }
+  };
+
+  // --- UNDO ---
+
+  const handleUndo = () => {
     if (ballHistory.length === 0) return;
-
+    // Remove last event, get previous snapshot
     const last = ballHistory[ballHistory.length - 1];
-    const updated = [...ballHistory];
-    updated.pop();
-    setBallHistory(updated);
+    if (last && last.snapshot) {
+      restoreSnapshot(last.snapshot);
+    }
 
-    if (last.type === 'run') {
-      setScore(s => s - last.value);
-      setBowlerStats(stats => ({ ...stats, runs: stats.runs - last.value }));
-      setBalls(b => Math.max(b - 1, 0));
-      if ((balls - 1) % 6 === 5) setOvers(o => Math.max(o - 1, 0));
+    // Remove last log
+    setBallHistory((hist) => hist.slice(0, -1));
+  };
 
-      // Undo strike if needed
-      if (last.value % 2 !== 0) swapStrike();
-
-      // Undo batsman runs
-      setBatsmen(prev =>
-        prev.map(b =>
-          b.name === currentBatsman ? { ...b, runs: b.runs - last.value } : b
-        )
-      );
-    } else if (last.type === 'wicket') {
-      setWickets(w => Math.max(w - 1, 0));
-      setBowlerStats(stats => ({ ...stats, wickets: stats.wickets - 1 }));
-      setBalls(b => Math.max(b - 1, 0));
-      if ((balls - 1) % 6 === 5) setOvers(o => Math.max(o - 1, 0));
+  // --- Dropdowns ---
+  // Bowler: after 6 balls, must submit
+  const selectNextBowler = (e) => setSelectedNextBowlerIdx(Number(e.target.value));
+  const submitNextBowler = () => {
+    if (selectedNextBowlerIdx !== null) {
+      // Save snapshot for undo (so UNDO after bowler change also works)
+      const snapshot = getSnapshot();
+      setBallHistory((prev) => [
+        ...prev,
+        {
+          type: "bowlerChange",
+          snapshot,
+          log: `New Bowler: ${bowlers[selectedNextBowlerIdx].name}`,
+        }
+      ]);
+      setCurrentBowlerIdx(selectedNextBowlerIdx);
+      setShowBowlerDropdown(false);
+      setSelectedNextBowlerIdx(null);
     }
   };
 
-    const handleNoBall = () => {
-        const ballNumber = `${oversCount}.${ballsCount % 6}`;
-        const logMessage = `${ballNumber} - NO BALL - Bowler overstepped`;
-
-        setBallHistory([...ballHistory, {type: 'no-ball', log: logMessage}]);
-        
+  // Batsman: after wicket, must submit
+  const selectNextBatsman = (e) => setSelectedNextBatsmanIdx(Number(e.target.value));
+  const submitNextBatsman = () => {
+    if (selectedNextBatsmanIdx !== null) {
+      // Save snapshot for undo (so UNDO after batsman change also works)
+      const snapshot = getSnapshot();
+      setBallHistory((prev) => [
+        ...prev,
+        {
+          type: "batsmanChange",
+          snapshot,
+          log: `New Batsman: ${batsmen[selectedNextBatsmanIdx].name} to crease`,
+        }
+      ]);
+      setOnStrikeIdx(selectedNextBatsmanIdx);
+      setNextBatsmanNum((n) => n + 1);
+      setShowBatsmanDropdown(false);
+      setSelectedNextBatsmanIdx(null);
     }
+  };
 
-    const handleWide = () => {
-        const ballNumber = `${oversCount}.${ballsCount % 6}`;
-        const logMessage = `${ballNumber} - WIDE - Bowler bowled a wide`;
-
-        setBallHistory([...ballHistory, {type: 'wide', log: logMessage}]);
-        
+  // --- End of Innings ---
+  useEffect(() => {
+    // End after 10 wickets or 120 balls (20 overs)
+    if (currentWicketCount === 10 || ballsCount === 120) {
+      navigate("/inning-summary", {
+        state: {
+          score: currentBattingTeamScore,
+          wickets: currentWicketCount,
+          overs: `${Math.floor(ballsCount / 6)}.${ballsCount % 6}`,
+        },
+      });
     }
-    const handleBye = () => {
-        const ballNumber = `${oversCount}.${ballsCount % 6}`;
-        const logMessage = `${ballNumber} - BYE - Batsman ran for a bye`;
+  }, [currentWicketCount, ballsCount, navigate, currentBattingTeamScore]);
 
-        setBallHistory([...ballHistory, {type: 'bye', log: logMessage}]);
-        
-    }
-    const handleLegBye = () => {
-        const ballNumber = `${oversCount}.${ballsCount % 6}`;
-        const logMessage = `${ballNumber} - LEG BYE - Batsman ran for a leg bye`;
-
-        setBallHistory([...ballHistory, {type: 'leg-bye', log: logMessage}]);
-        
-    }
-
-
-    useEffect(() => {
-        if (currentWicket === 10 || overs === 20) {
-            navigate('/inning-summary');
-        } 
-    }, [currentWicket, overs, navigate]); 
-
-
+  // --- UI ---
   return (
-    <div>
-        <div>{teamAName} vs {teamBName} </div>
-        <div>{venueName}</div>
-        <br />
-        <div>{currentBattingTeam} : {currentBattingTeamScore}-{currentWicketCount} Overs:- {oversCount}.{ballsCount%6}</div>
-        <div>{batsmen[0]} - score  <br /> {batsmen[1]} - score </div>
-        <div>{bowler} - {oversCount}.{ballsCount%6} ({runTaken}) {wicketTaken}</div>
-        <div>
-            <button onClick={() => handleRun(1)}>1</button>
-            <button onClick={() => handleRun(2)}>2</button>
-            <button onClick={() => handleRun(3)}>3</button>
-            <button onClick={() => handleRun(4)}>4</button>
-            <button onClick={() => handleRun(6)}>6</button>
-            <button onClick={() => handleWicket}>Wicket</button>
-            <button onClick={() => handleNoBall()}>No Ball</button>
-            <button onClick={() => handleWide()}>Wide</button>
-            <button onClick={() => handleBye()}>Bye</button>
-            <button onClick={() => handleLegBye()}>Leg Bye</button>
-            <button onClick={() => handleUndo}>Undo</button>
-        </div>
-        <div>
-            Ball-By-Ball History:
-            <ul>
-  {ballHistory.map((entry, index) => (
-    <li key={index}>{entry.log}</li>
-  ))}
-</ul>
-        </div>
-    </div>
-  )
-}
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <div>
+        <h2>
+          {teamAName} vs {teamBName}
+        </h2>
+        <span>{venueName}</span>
+      </div>
+      <hr />
 
-export default Test
+      <div>
+        <h3>
+          {currentBattingTeam}
+          <br />
+          <span style={{ fontSize: "18pt" }}>
+            {currentBattingTeamScore}-{currentWicketCount}
+            &nbsp; Overs: {oversDisplay}
+          </span>
+        </h3>
+      </div>
+
+      <div>
+        <b>Batsmen</b>
+        <div>
+          <b>{batsmen[onStrikeIdx].name}*</b> &nbsp;
+          {batsmen[onStrikeIdx].runs}({batsmen[onStrikeIdx].balls})
+        </div>
+        <div>
+          {batsmen[offStrikeIdx].name} &nbsp;
+          {batsmen[offStrikeIdx].runs}({batsmen[offStrikeIdx].balls})
+        </div>
+      </div>
+
+      <div>
+        <b>Bowler:</b>
+        {bowlers[currentBowlerIdx].name} &nbsp;
+        Overs: {Math.floor(bowlers[currentBowlerIdx].balls / 6)}.{bowlers[currentBowlerIdx].balls % 6} &nbsp;
+        Runs: {bowlers[currentBowlerIdx].runs} &nbsp;
+        Wickets: {bowlers[currentBowlerIdx].wickets}
+      </div>
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "8px 0" }}>
+        {[1, 2, 3, 4, 6].map((run) => (
+          <button key={run} onClick={() => handleRun(run)}>{run}</button>
+        ))}
+        <button onClick={handleWicket}>Wicket</button>
+        {["nb", "wide", "bye", "lb"].map((type) => (
+          <button key={type} onClick={() => handleExtraType(type)}>
+            {type.toUpperCase()}
+          </button>
+        ))}
+        <button onClick={handleUndo}>Undo</button>
+      </div>
+
+      {extraType && (
+        <div style={{ margin: "6px 0" }}>
+          <label>
+            Runs on {extraType.toUpperCase()} (including default 1):{" "}
+            <select
+              value={extraRun}
+              onChange={(e) => setExtraRun(Number(e.target.value))}
+            >
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((v) => (
+                <option value={v} key={v}>{v}</option>
+              ))}
+            </select>
+          </label>
+          {" "}
+          <button onClick={submitExtraRun}>Submit</button>
+          <button onClick={() => setExtraType(null)}>Cancel</button>
+        </div>
+      )}
+
+      {showBowlerDropdown && (
+        <div style={{ margin: "6px 0" }}>
+          <label>
+            Select Next Bowler:&nbsp;
+            <select
+              onChange={selectNextBowler}
+              value={selectedNextBowlerIdx ?? currentBowlerIdx}
+            >
+              {bowlers.map((b, idx) => (
+                <option key={idx} value={idx}>{b.name}</option>
+              ))}
+            </select>
+            &nbsp;
+            <button
+              onClick={submitNextBowler}
+              disabled={selectedNextBowlerIdx === null}>
+              Submit
+            </button>
+          </label>
+        </div>
+      )}
+
+      {showBatsmanDropdown && (
+        <div style={{ margin: "6px 0" }}>
+          <label>
+            Select Next Batsman:&nbsp;
+            <select onChange={selectNextBatsman} value={selectedNextBatsmanIdx ?? ""}>
+              <option value="" disabled>Select</option>
+              {batsmen.map(
+                (bat, idx) =>
+                  idx >= nextBatsmanNum &&
+                  <option key={idx} value={idx}>{bat.name}</option>
+              )}
+            </select>
+            &nbsp;
+            <button
+              onClick={submitNextBatsman}
+              disabled={selectedNextBatsmanIdx === null}>
+              Submit
+            </button>
+          </label>
+        </div>
+      )}
+
+      <div style={{ marginTop: 16, background: "#eee", padding: 10 }}>
+        <b>Ball-by-ball log:</b>
+        <ul>
+          {ballHistory.map((entry, idx) => (
+            <li key={idx}>{entry.log}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default Test;

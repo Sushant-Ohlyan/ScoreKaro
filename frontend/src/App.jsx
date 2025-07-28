@@ -12,8 +12,9 @@ import Match from './components/Match';
 import CreateTeam from './components/CreateTeam';
 import InningSummary from './components/InningSummary';
 import Scorecard from './components/Scorecard';
+import Test3 from './components/Test3';
 import Test from './components/Test';
-import Test2 from './components/Test2';
+import Temp from './components/Temp';
 
 function App() {
   return (
@@ -32,7 +33,8 @@ function App() {
         <Route path="/create-team" element={<CreateTeam />} />
         <Route path="/scorecard" element={<Scorecard />} />
         <Route path="/test" element={<Test />} />
-        <Route path="/test2" element={<Test2 />} />
+        <Route path="/temp" element={<Temp />} />
+        <Route path="/test3" element={<Test3 />} />
       </Routes>
       <Footer />
     </>
