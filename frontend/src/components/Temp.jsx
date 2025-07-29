@@ -18,7 +18,7 @@ const getDefaultBowlers = () =>
     wickets: 0,
   }));
 
-const Test = () => {
+const Temp = () => {
   const navigate = useNavigate();
 
   // Core state
@@ -433,4 +433,4 @@ const Test = () => {
   );
 };
 
-export default Test;
+export default Temp;
