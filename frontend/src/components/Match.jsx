@@ -21,6 +21,9 @@ const getDefaultBowlers = () =>
 
 const Match = () => {
   const navigate = useNavigate();
+  
+
+
 
   // ---- Team/Match State ----
   const [teamAName] = useState("Team A");
@@ -304,7 +307,7 @@ const Match = () => {
 
       {/* --- CONTROLS GRID --- */}
       <div className="buttons-grid">
-        {[1, 2, 3, 4, 6].map(run => (
+        {[0,1, 2, 3, 4, 6].map(run => (
           <button
             key={run}
             onClick={() => handleRun(run)}

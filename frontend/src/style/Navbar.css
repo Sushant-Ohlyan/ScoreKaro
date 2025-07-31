@@ -11,6 +11,8 @@
 
   color: white;
   transition: background-color 0.4s ease;
+  border-radius: 10px;
+  
 }
 
 /* Dark mode background for navbar */

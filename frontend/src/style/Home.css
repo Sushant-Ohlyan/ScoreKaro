@@ -2,10 +2,17 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
 
-
-
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, #000000, #0f1e3a);
+  
+}
 .home-container {
-  /* background-color: #bfe9c1;  */
+ 
+
   color: white;
   min-height: 76.4vh;
   display: flex;
@@ -49,7 +56,7 @@
   font-size: 4.0rem;
   font-weight: 25;
   margin-bottom: 20px;
-  color: #0953a7;
+  color: white;
 }
 
 .start-button {
@@ -58,11 +65,11 @@
   border: none;
   padding: 12px 24px;
   font-size: 2rem;
-  border-radius: 6px;
+  border-radius: 15px;
   cursor: pointer;
   transition: background-color 0.3s ease;
   margin-top: 75px;
-  position: fixed;
+  position: relative;
   left: 60%;
 }
 

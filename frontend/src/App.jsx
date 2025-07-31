@@ -3,7 +3,7 @@ import Footer from './components/Footer';
 import Home from './components/Home';
 import About from './components/About';
 import Contact from './components/Contact';
-import Teams from './components/Teams';
+import Teams from './components/TeamsManage';
 import Matches from './components/Matches';
 import { Routes, Route } from 'react-router-dom';
 import Login from './components/Login';
@@ -15,6 +15,10 @@ import Scorecard from './components/Scorecard';
 import Test3 from './components/Test3';
 import Test from './components/Test';
 import Temp from './components/Temp';
+import Matchsetup from './components/Matchsetup';
+import Teamsetup from './components/Teamsetup';
+import './style/App.css';
+import TeamsManage from './components/TeamsManage';
 
 function App() {
   return (
@@ -24,8 +28,10 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/matchsetup" element={<Matchsetup />} />
+        <Route path="/teamsetup" element={<Teamsetup />} />
         <Route path="/matches" element={<Matches />} />
-        <Route path="/teams" element={<Teams />} />
+        <Route path="/teams" element={<TeamsManage />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/match" element={<Match />} />

@@ -1,0 +1,130 @@
+body {
+  background: linear-gradient(to right, #000000, #0f1e3a);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+}
+
+.match-setup-page {
+  padding: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+h2 {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 40px;
+  font-weight: 700;
+}
+
+/* Layout container */
+.setup-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;
+  margin-bottom: 40px;
+}
+
+/* Left & right columns */
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 420px; /* button/card width */
+}
+
+/* Cards */
+.card {
+    background: rgba(255, 255, 255, 0.05); /* blue like your Figma */
+  border-radius: 8px;
+  border:2px solid  ;
+  border-color: #fff;
+  padding: 14px;
+  text-align: center;
+  color: #fff;
+  font-weight: 600;
+  height: 150px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.card h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+/* Inputs inside card */
+.card input[type="text"],
+.card input[type="number"],
+.card select {
+  margin-top: 8px;
+  width: 70%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background-color:white;
+  color:black;
+}
+
+
+
+/* Options like radio buttons */
+.options {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Add Player button */
+
+
+/* Center image */
+.center-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.center-image img {
+  width: 420px;
+  height: auto;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Submit button */
+.submit-btn {
+  display: block;
+  margin: 30px auto 0 auto;
+  padding: 14px 40px;
+  background-color: #DC2626; /* red like your "Let's Play" */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+.submit-btn:hover {
+  background-color: #B91C1C;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .setup-layout {
+    flex-direction: column;
+    gap: 30px;
+  }
+  .left-column,
+  .right-column {
+    width: 100%;
+    max-width: 300px;
+  }
+  .center-image img {
+    width: 180px;
+  }
+}

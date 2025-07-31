@@ -1,12 +1,24 @@
-in match.jsx 
-    naviagate to inning summary after 10 wicket
-    naviagate to inning summary after 20 over 
-    in current bowler show bowler's name and the number of ball played and wicket taken and run taken
-    
-
 teams 
 matches 
 about
 contact 
 inning-summary 
 scorecard backend  
+
+<Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/matches" element={<Matches />} />
+        <Route path="/teams" element={<Teams />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/match" element={<Match />} />
+        <Route path="/inning-summary" element={<InningSummary />} />
+        <Route path="/create-team" element={<CreateTeam />} />
+        <Route path="/scorecard" element={<Scorecard />} />
+        <Route path="/test" element={<Test />} />
+        <Route path="/temp" element={<Temp />} />
+        <Route path="/test3" element={<Test3 />} />
+ 
+         <Route path="/matchsetup" element={<Matchsetup />} /> 
+          <Route path="/teamsetup" element={<Teamsetup />} /> 
