@@ -1,0 +1,105 @@
+.team-manage-wrapper {
+  padding: 30px;
+  background-color: #0f172a; /* dark slate background */
+  min-height: 100vh;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.team-manage-title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #ffff; /* sky blue */
+}
+
+.team-manage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.team-manage-card {
+  background: rgba(255, 255, 255, 0.05); /* transparent glassy */
+  border: 1px solid white;
+  padding: 20px;
+  border-radius: 15px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.team-manage-card:hover {
+  transform: scale(1);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+}
+
+.team-manage-name {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  color: #ffffff; /* yellow */
+}
+
+.team-manage-count {
+  font-size: 1rem;
+  margin-bottom: 15px;
+  color: #cbd5e1;
+}
+
+.team-manage-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.team-manage-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.team-manage-btn.view {
+  background-color: #22c55e; /* green */
+  color: white;
+}
+
+.team-manage-btn.delete {
+  background-color: #ef4444; /* red */
+  color: white;
+}
+
+.team-manage-btn.view:hover {
+  background-color: #16a34a;
+}
+
+.team-manage-btn.delete:hover {
+  background-color: #dc2626;
+}
+
+.team-manage-add-btn {
+  margin-top: 30px;
+  display: block;
+  padding: 12px 20px;
+  background-color: #3b82f6; /* blue */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: auto;
+  margin-right: auto;
+  transition: background-color 0.3s ease;
+}
+
+.team-manage-add-btn:hover {
+  background-color: #2563eb;
+}
+
+.team-manage-empty {
+  text-align: center;
+  font-size: 1rem;
+  color: #94a3b8;
+}

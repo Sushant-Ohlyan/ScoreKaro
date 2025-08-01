@@ -16,9 +16,10 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.error("Mongo Error", err));
 
-app.use('/api/teams', teamRoutes);
+app.use('/api/team-setup', teamRoutes);
 app.use('/api/match-setup', matchSetupRoutes);
-app.use('/api/teams-manage', teamManageRoutes);
+app.use('/api/team-manage', teamManageRoutes);
+app.use('/api/team-save', require('./routes/teamSaveRoute'));
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);

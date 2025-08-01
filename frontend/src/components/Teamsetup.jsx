@@ -27,6 +27,53 @@ const TeamSetupPage = () => {
   const addPlayerToTeamA = () => setTeamAPlayers([...teamAPlayers, ""]);
   const addPlayerToTeamB = () => setTeamBPlayers([...teamBPlayers, ""]);
 
+  const handleSaveTeamA = async () => {
+    if (!teamAName) {
+      alert("Please enter both team names.");
+      return;
+    }
+    if (teamAPlayers.some(player => !player) ) {
+      alert("Please fill all player names.");
+      return;
+    }
+    alert("Team saved successfully!");
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/team-save/save", {
+        teamName: teamAName,
+        teamPlayers: teamAPlayers
+      });
+      alert(res.data.message);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving team data.");
+    }
+  };
+
+  const handleSaveTeamB = async () => {
+    if (!teamBName) {
+      alert("Please enter Team B name.");
+      return;
+    }
+    if (teamBPlayers.some(player => !player)) {
+      alert("Please fill all player names.");
+      return;
+    }
+    alert("Team saved successfully!");
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/team-save/save", {
+        teamName: teamBName,
+        teamPlayers: teamBPlayers
+      });
+      alert(res.data.message);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving team data.");
+    }
+  };
+
+
   const handleSubmit = async () => {
   const data = {
     teamAName,
@@ -36,7 +83,7 @@ const TeamSetupPage = () => {
   };
 
   try {
-    const res = await axios.post("http://localhost:5000/api/teams/save", data);
+    const res = await axios.post("http://localhost:5000/api/team-setup/save", data);
     alert(res.data.message);
     console.log("Saved:", res.data);
   } catch (err) {
@@ -71,6 +118,7 @@ const TeamSetupPage = () => {
               />
             ))}
             <button onClick={addPlayerToTeamA}>+ Add Player</button>
+            <button onClick={handleSaveTeamA}>Save Team A</button>
           </div>
         </div>
 
@@ -100,6 +148,7 @@ const TeamSetupPage = () => {
               />
             ))}
             <button onClick={addPlayerToTeamB}>+ Add Player</button>
+            <button onClick={handleSaveTeamB}>Save Team B</button>
           </div>
         </div>
       </div>
