@@ -7,3 +7,21 @@ scorecard backend
 
 component left match summary 
 
+const mongoose = require('mongoose');
+
+const inningSummarySchema = new mongoose.Schema({
+  teamAName: { type: String, required: true },
+  teamBName: { type: String, required: true },
+  overs: { type: Number, required: true },
+  runs: { type: Number, required: true },
+  wickets: { type: Number, required: true },
+  runRate: { type: Number, required: true },
+  inningNumber: { type: Number, required: true },
+  matchId: { type: mongoose.Schema.Types.ObjectId, ref: 'MatchSetup', required: true },
+  topScorer: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true },
+  topPerformer: { type: mongoose.Schema.Types.ObjectId, ref: 'Player', required: true },
+});
+
+module.exports = mongoose.model('InningSummary', inningSummarySchema);
+
+// team a name, team b name, overs, runs, wickets, run rate, inning number, match id, Top scorer, Top Performer

@@ -6,7 +6,8 @@ const teamRoutes = require('./routes/teamRoutes');
 const matchSetupRoutes = require('./routes/matchSetupRoutes');
 const teamManageRoutes = require('./routes/teamManageRoutes');
 const teamSaveRoutes = require('./routes/teamSaveRoute');
-const onGoingInningRoute= require('./routes/onGoingInningRoute');
+const onGoingInningRoute= require('./routes/MatchDetailRoutes');
+const contactDetailRoutes = require('./routes/contactDetailRoute');
 
 dotenv.config();
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/match-setup', matchSetupRoutes);
 app.use('/api/team-manage', teamManageRoutes);
 app.use('/api/team-save', teamSaveRoutes);
 app.use('/api/on-going-inning', onGoingInningRoute);
+app.use('/api/contact-detail', contactDetailRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
