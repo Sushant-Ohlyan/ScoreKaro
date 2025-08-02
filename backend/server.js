@@ -5,6 +5,8 @@ const dotenv = require('dotenv');
 const teamRoutes = require('./routes/teamRoutes');
 const matchSetupRoutes = require('./routes/matchSetupRoutes');
 const teamManageRoutes = require('./routes/teamManageRoutes');
+const teamSaveRoutes = require('./routes/teamSaveRoute');
+const onGoingInningRoute= require('./routes/onGoingInningRoute');
 
 dotenv.config();
 const app = express();
@@ -19,7 +21,8 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/team-setup', teamRoutes);
 app.use('/api/match-setup', matchSetupRoutes);
 app.use('/api/team-manage', teamManageRoutes);
-app.use('/api/team-save', require('./routes/teamSaveRoute'));
+app.use('/api/team-save', teamSaveRoutes);
+app.use('/api/on-going-inning', onGoingInningRoute);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
