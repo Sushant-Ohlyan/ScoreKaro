@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import "../style/MatchSetup.css";
 import b from "../assets/b.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import BackButton from "./BackButton";
 
 
 const MatchSetup = () => {
@@ -21,6 +22,9 @@ const MatchSetup = () => {
     tossWinner: "",
     tossDecision: "",
   });
+
+  const location = useLocation();
+  const { teamAName, teamBName } = location.state || {};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -183,13 +187,24 @@ const MatchSetup = () => {
           {/* Toss Section */}
           <div className="card">
             <h3>Toss</h3>
-            <input
+            {/* <input
               type="text"
               name="tossWinner"
               placeholder="Who won the toss?"
               value={matchDetails.tossWinner}
               onChange={handleChange}
-            />
+            /> */}
+
+            <select
+              name="tossWinner"
+              value={matchDetails.tossWinner}
+              onChange={handleChange}
+            >
+              <option value="">Select Toss Winner</option>
+              <option value={teamAName}> {teamAName} </option>
+              <option value={teamBName}> {teamBName} </option>
+            </select>
+
             <select
               name="tossDecision"
               value={matchDetails.tossDecision}
@@ -202,6 +217,8 @@ const MatchSetup = () => {
           </div>
         </div>
       </div>
+
+      <button className="back-btn"><BackButton /></button>
 
       <button className="submit-btn" onClick={handleSubmit}>
         Start Match

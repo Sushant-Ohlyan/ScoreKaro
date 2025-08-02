@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/Teamsetup.css";
-import centerImg from "../assets/b.png"; // Replace with your actual image path
-import axios from 'axios';
+import centerImg from "../assets/b.png"; 
+import axios from "axios";
+import BackButton from "./BackButton";
 
 const TeamSetupPage = () => {
   const navigate = useNavigate();
+  const [teamSaveSuccess, setTeamSaveSuccess] = useState(false); 
 
   const [teamAName, setTeamAName] = useState("");
   const [teamBName, setTeamBName] = useState("");
-  const [teamAPlayers, setTeamAPlayers] = useState([""]);
-  const [teamBPlayers, setTeamBPlayers] = useState([""]);
+  const [teamAPlayers, setTeamAPlayers] = useState(Array(11).fill(""));
+  const [teamBPlayers, setTeamBPlayers] = useState(Array(11).fill(""));
+
 
   const handleTeamAPlayerChange = (index, value) => {
     const updated = [...teamAPlayers];
@@ -28,34 +31,33 @@ const TeamSetupPage = () => {
   const addPlayerToTeamB = () => setTeamBPlayers([...teamBPlayers, ""]);
 
   const handleSaveTeamA = async () => {
-    if (!teamAName) {
-      alert("Please enter both team names.");
-      return;
-    }
-    if (teamAPlayers.some(player => !player) ) {
-      alert("Please fill all player names.");
-      return;
-    }
-    alert("Team saved successfully!");
+  if (!teamAName) {
+    alert("Please enter Team A name.");
+    return;
+  }
+  if (teamAPlayers.some((player) => !player)) {
+    alert("Please fill all player names.");
+    return;
+  }
+  try {
+    const res = await axios.post("http://localhost:5000/api/team-save/save", {
+      teamName: teamAName,
+      teamPlayers: teamAPlayers,
+    });
+    alert(res.data.message || "Team saved successfully!");
+  } catch (err) {
+    console.error(err);
+    alert("Error saving team data.");
+  }
+};
 
-    try {
-      const res = await axios.post("http://localhost:5000/api/team-save/save", {
-        teamName: teamAName,
-        teamPlayers: teamAPlayers
-      });
-      alert(res.data.message);
-    } catch (err) {
-      console.error(err);
-      alert("Error saving team data.");
-    }
-  };
 
   const handleSaveTeamB = async () => {
     if (!teamBName) {
       alert("Please enter Team B name.");
       return;
     }
-    if (teamBPlayers.some(player => !player)) {
+    if (teamBPlayers.some((player) => !player)) {
       alert("Please fill all player names.");
       return;
     }
@@ -64,34 +66,44 @@ const TeamSetupPage = () => {
     try {
       const res = await axios.post("http://localhost:5000/api/team-save/save", {
         teamName: teamBName,
-        teamPlayers: teamBPlayers
+        teamPlayers: teamBPlayers,
       });
-      alert(res.data.message);
+      alert(res.data.message || "Team saved successfully!");
     } catch (err) {
       console.error(err);
       alert("Error saving team data.");
     }
   };
 
-
   const handleSubmit = async () => {
-  const data = {
-    teamAName,
-    teamBName,
-    teamAPlayers,
-    teamBPlayers,
+    const data = {
+      teamAName,
+      teamBName,
+      teamAPlayers,
+      teamBPlayers,
+    };
+
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/team-setup/save",
+        data
+      );
+      alert(res.data.message);
+      console.log("Saved:", res.data);
+      setTeamSaveSuccess(true);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving team data.");
+    }
   };
 
-  try {
-    const res = await axios.post("http://localhost:5000/api/team-setup/save", data);
-    alert(res.data.message);
-    console.log("Saved:", res.data);
-  } catch (err) {
-    console.error(err);
-    alert("Error saving team data.");
-  }
-};
-
+  const handleNext = () => {
+    if (teamSaveSuccess) {
+      navigate("/matchsetup", { state: { teamAName, teamBName } });
+    } else {
+      alert("Please save the teams before proceeding.");
+    }
+  };
 
   return (
     <div className="team-setup-page">
@@ -122,12 +134,10 @@ const TeamSetupPage = () => {
           </div>
         </div>
 
-        {/* Center Image */}
         <div className="center-image">
           <img src={centerImg} alt="Center" />
         </div>
 
-        {/* Team B Card */}
         <div className="team-card">
           <h3>Team B</h3>
           <input
@@ -153,12 +163,19 @@ const TeamSetupPage = () => {
         </div>
       </div>
 
+
+        
       <div className="button-group">
+
+        <div className="back-button">
+          <BackButton />
+        </div>
+
         <button className="submit-button" onClick={handleSubmit}>
           Save Teams
         </button>
 
-        <button className="next-button" onClick={() => navigate("/matchsetup")}>
+        <button className="next-button" onClick={() => handleNext()} disabled={!teamSaveSuccess}>
           Next
         </button>
       </div>
