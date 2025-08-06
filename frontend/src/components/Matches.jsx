@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import BackButton from './BackButton';
+import React, { useEffect, useState } from 'react';
 
 const Matches = () => {
-  const navigate = useNavigate();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -11,86 +8,55 @@ const Matches = () => {
     const fetchMatches = async () => {
       try {
         const response = await fetch('http://localhost:5000/api/match-details');
-        if (!response.ok) {
-          throw new Error('Failed to fetch matches');
-        }
+        if (!response.ok) throw new Error('Failed to fetch matches');
         const data = await response.json();
         setMatches(data);
-      } catch (error) {
-        console.error('Error fetching matches:', error);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchMatches();
   }, []);
 
-  const handleStartMatch = () => {
-    navigate('/teamsetup');
-  };
-
-  const handleDeleteMatch = async (id) => {
-    const confirmDelete = window.confirm('Are you sure you want to delete this match?');
-    if (!confirmDelete) return;
-
-    try {
-      const response = await fetch(`http://localhost:5000/api/match-details/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setMatches(prev => prev.filter(match => match._id !== id));
-      } else {
-        alert('Failed to delete match');
-      }
-    } catch (error) {
-      alert('Error deleting match');
-      console.error(error);
-    }
-  };
-
   return (
     <div style={{ padding: '20px' }}>
-      <h2>Live Matches</h2>
-      <BackButton />
-      <button onClick={handleStartMatch} style={{ marginBottom: '10px' }}>
-        Start New Match
-      </button>
-
+      <h2>Past Matches</h2>
       {loading ? (
-        <p>Loading matches...</p>
+        <p>Loading...</p>
       ) : matches.length === 0 ? (
-        <p>No live matches found.</p>
+        <p>No past matches found.</p>
       ) : (
-        <ul>
-          {matches.map((match) => {
-            // Assuming match object has these fields, adjust as per your backend data:
-            const { _id, teamA, teamB, currentBattingTeamScore, currentWicketCount, ballsCount, overs, status, startTime } = match;
-
-            const oversDisplay = overs
-              ? `${Math.floor(ballsCount / 6)}.${ballsCount % 6}`
-              : null;
-
-            return (
-              <li key={_id} style={{ marginBottom: '10px' }}>
-                {teamA} vs {teamB} -{' '}
-                {status === 'live' ? (
-                  <>
-                    {currentBattingTeamScore}/{currentWicketCount} ({oversDisplay} overs)
-                  </>
-                ) : (
-                  `Match starts at ${startTime || 'TBD'}`
-                )}
-                &nbsp;
-                {status === 'live' && (
-                  <button onClick={() => handleDeleteMatch(_id)} style={{ marginLeft: '10px', color: 'red' }}>
-                    Delete
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+          {matches.map(match => (
+            <div
+              key={match._id}
+              style={{
+                background: '#f4f4f4',
+                borderRadius: '8px',
+                padding: '18px 20px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                minWidth: '260px'
+              }}
+            >
+              <div style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>
+                {match.teamAName} vs {match.teamBName}
+              </div>
+              <div>
+                <b>{match.teamAName}:</b> {match.teamAScore !== undefined ? match.teamAScore : 'N/A'}
+              </div>
+              <div>
+                <b>{match.teamBName}:</b> {match.teamBScore !== undefined ? match.teamBScore : 'N/A'}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <span style={{ fontWeight: 500, color: '#177d44' }}>
+                  Winner: {match.winnerName || 'N/A'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

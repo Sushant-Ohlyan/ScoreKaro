@@ -38,8 +38,8 @@ const addMatchDetail = async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const innings = await MatchDetail.find();
-    res.status(200).json(innings);
+    const matches = await MatchDetail.find();
+    res.status(200).json(matches);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -57,52 +57,39 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.get('/latest', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
-    const latestMatchDetail = await MatchDetail.findOne().sort({ createdAt: -1 });
-    if (!latestMatchDetail) {
-      return res.status(404).json({ message: 'No match details found' });
+    const updateFields = req.body;
+    const matchDetail = await MatchDetail.findByIdAndUpdate(req.params.id, updateFields, { new: true });
+    if (!matchDetail) {
+      return res.status(404).json({ message: 'Match detail not found' });
     }
-    res.status(200).json(latestMatchDetail);
+    res.status(200).json(matchDetail);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-router.get('/latest/:teamName', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const { teamName } = req.params;
-    const latestMatchDetail = await MatchDetail.findOne({
-      $or: [{ teamAName: teamName }, { teamBName: teamName }],
-    }).sort({ createdAt: -1 });
-
-    if (!latestMatchDetail) {
-      return res.status(404).json({ message: 'No match details found for the specified team' });
+    const match = await MatchDetail.findByIdAndDelete(req.params.id);
+    if (!match) {
+      return res.status(404).json({ message: 'Match detail not found' });
     }
-    res.status(200).json(latestMatchDetail);
+    res.status(204).send();
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-router.get('/latest/:teamName/:matchType', async (req, res) => {
+router.post('/batting-player', async (req, res) => {
   try {
-    const { teamName, matchType } = req.params;
-    const latestMatchDetail = await MatchDetail.findOne({
-      $or: [{ teamAName: teamName }, { teamBName: teamName }],
-      matchType: matchType
-    }).sort({ createdAt: -1 });
-
-    if (!latestMatchDetail) {
-      return res.status(404).json({ message: 'No match details found for the specified team and match type' });
-    }
-    res.status(200).json(latestMatchDetail);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const player = new BattingPlayer(req.body);
+    await player.save();
+    res.status(201).json(player);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
-
-
 
 module.exports = router;
-

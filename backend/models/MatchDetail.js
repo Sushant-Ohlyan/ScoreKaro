@@ -1,9 +1,7 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-
-
-
-const matchDetailSchema = new mongoose.Schema({
+const matchDetailSchema = new Schema({
     teamAName: { type: String, required: true },
     teamBName: { type: String, required: true },
     teamAPlayerNames: { type: [String], required: true },
@@ -19,5 +17,30 @@ const matchDetailSchema = new mongoose.Schema({
     tossDecision: { type: String, required: true },
 
 });
+
+const battingPlayerSchema = new Schema({
+    teamName: { type: String, required: true },
+    name: { type: String, required: true },
+    runs: { type: Number, required: true },
+    overs: { type: Number, required: true },
+});
+
+const bowlingPlayerSchema = new Schema({
+    teamName: { type: String, required: true },
+    name: { type: String, required: true },
+    overs: { type: Number, required: true },
+    runs: { type: Number, required: true },
+    wickets: { type: Number, required: true },
+});
+
+const thisInningSchema = new Schema({
+    currentBattingTeam:{type:String, required: true},
+    currentBallingTeam:{type:String, required:true},
+    totalOvers:{type:String, required:true},
+    totalScore:{type:Number,required:true},
+    totalWickets:{type:Number,reqquired:true},
+})
+
+
 
 module.exports = mongoose.model('MatchDetail', matchDetailSchema);

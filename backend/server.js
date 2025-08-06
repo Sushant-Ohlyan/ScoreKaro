@@ -6,7 +6,7 @@ const teamRoutes = require('./routes/teamRoutes');
 const matchSetupRoutes = require('./routes/matchSetupRoutes');
 const teamManageRoutes = require('./routes/teamManageRoutes');
 const teamSaveRoutes = require('./routes/teamSaveRoute');
-const onGoingInningRoute= require('./routes/MatchDetailRoutes');
+const matchDetailRoute= require('./routes/matchDetailRoutes');
 const contactDetailRoutes = require('./routes/contactDetailRoute');
 
 dotenv.config();
@@ -23,7 +23,7 @@ app.use('/api/team-setup', teamRoutes);
 app.use('/api/match-setup', matchSetupRoutes);
 app.use('/api/team-manage', teamManageRoutes);
 app.use('/api/team-save', teamSaveRoutes);
-app.use('/api/on-going-inning', onGoingInningRoute);
+app.use('/api/match-details', matchDetailRoute);
 app.use('/api/contact-detail', contactDetailRoutes);
 
 app.listen(process.env.PORT, () => {

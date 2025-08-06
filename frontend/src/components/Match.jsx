@@ -22,9 +22,6 @@ const getDefaultBowlers = () =>
 const Match = () => {
   const navigate = useNavigate();
   
-
-
-
   // ---- Team/Match State ----
   const [teamAName] = useState("Team A");
   const [teamBName] = useState("Team B");
