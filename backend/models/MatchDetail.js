@@ -18,20 +18,9 @@ const matchDetailSchema = new Schema({
 
 });
 
-const battingPlayerSchema = new Schema({
-    teamName: { type: String, required: true },
-    name: { type: String, required: true },
-    runs: { type: Number, required: true },
-    overs: { type: Number, required: true },
-});
 
-const bowlingPlayerSchema = new Schema({
-    teamName: { type: String, required: true },
-    name: { type: String, required: true },
-    overs: { type: Number, required: true },
-    runs: { type: Number, required: true },
-    wickets: { type: Number, required: true },
-});
+
+
 
 const thisInningSchema = new Schema({
     currentBattingTeam:{type:String, required: true},

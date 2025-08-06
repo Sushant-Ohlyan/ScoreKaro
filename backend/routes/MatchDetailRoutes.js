@@ -3,6 +3,8 @@ const router = express.Router();
 const MatchDetail = require('../models/MatchDetail');
 const MatchSetup = require('../models/MatchSetup');
 const TeamSetup = require('../models/TeamSetup');
+const BattingPlayer=require('../models/BattingPlayer');
+const BowlerDetail=require('../models/BowlerDetail');
 
 const addMatchDetail = async (req, res) => {
   try {
@@ -57,6 +59,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+
 router.put('/:id', async (req, res) => {
   try {
     const updateFields = req.body;
@@ -82,14 +86,36 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.post('/batting-player', async (req, res) => {
+router.put('/batter-score', async (req, res) => {
+  const { teamName, name, runs, overs } = req.body;
   try {
-    const player = new BattingPlayer(req.body);
-    await player.save();
-    res.status(201).json(player);
+    const updatedPlayer = await BattingPlayer.findOneAndUpdate(
+      { teamName, name },
+      { runs, overs },
+      { new: true, upsert: false, runValidators: true }
+    );
+    if (!updatedPlayer) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+    res.status(200).json(updatedPlayer);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+router.put('/bowler-detail', async(req,res)=>{
+
+  const {teamName,name,overs,runs,wickets}= req.body;
+
+  try{
+    const updatedPlayer = await BowlerDetail.findOneAndUpdate({teamName,name},{overs,runs,wickets},{new:true, upsert:false,runValidators:true});
+  if(!updatedPlayer){
+    return res.status(404).json({error:'player not found'});
+  }
+  res.status(200).json(updatedPlayer);
+} catch(err){
+  res.status(400).json({error :err.message});
+}
 });
 
 module.exports = router;

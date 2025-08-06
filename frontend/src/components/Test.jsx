@@ -48,6 +48,9 @@ const Test = () => {
   const [currentInningsOvers, setCurrentInningsOvers] = useState(0);
   const [currentInningsBalls, setCurrentInningsBalls] = useState(0);
   const [currentInningsRuns, setCurrentInningsRuns] = useState(0);
+  const [totalOverThrown, setTotalOverThrown] = useState(0);
+  const [totalRunGiven,setTotalRunGiven]=useState(0);
+  const [totalWicketTaken,setTotalWicketTaken]=useState(0);
   
   const [navigate, setNavigate] = useState(useNavigate());
 
@@ -88,44 +91,79 @@ function handleScoreUpdate() {
   setBallHistory([...ballHistory, { runs: currentRuns, ballType }]);
 }
 
-function handleOverUpdate() {
-  const overs= matchDetails.overs|| 0;
+async function handleOverUpdate() {
+  const overs = matchDetails.overs || 0;
+  
   if (currentBall >= 6) {
-    setCurrentOver(currentOver + 1);
+    const newOver = currentOver + 1;
+    setCurrentOver(newOver);
     setCurrentBall(0);
     setCurrentOverRuns(0);
     setOnStrikeIdx(nonStrikeIdx);
     setNonStrikeIdx(onStrikeIdx);
-    try{
-      const response =fetch(`http://localhost:5000/api/match-details/${matchId}`, {
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/match-details/${matchId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          currentOver,
+          currentOver: newOver,
           currentScore,
           currentWickets,
           currentBattingTeam,
-          currentBattingTeam,
+          currentBowlingTeam,
+          // only one currentBattingTeam key
         }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to update match details');
       }
-    }
-    catch(error){
-      console.error("Error : ", error);
+    } catch (error) {
+      console.error("Error:", error);
     }
 
-  } 
+    try {
+      const response = await fetch(`http://localhost:5000/api/match-details/batter-score`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    teamName: currentBattingTeam,
+    name: currentBatsman,
+    runs: Number(currentBatsmanScore),
+    overs: Number(currentBatsmanBallPlayed),
+  }),
+});
+      if (!response.ok) {
+        throw new Error('Failed to update batter score');
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    }
+    try{
+      const response =await fetch(`http://localhost:5000/api/match-details/bowler-detail`,{
+        method: 'PUT',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          teamName: currentBowlingTeam,
+          name: currentBowler,
+          overs: Number(totalOverThrown),
+          runs: Number(totalRunGiven),
+          wickets: Number(totalWicketTaken),
+        }),
+      });
+    }catch(err){
+      console.error(err);
+    }
+
+  }
+
   if (currentOver >= overs) {
     alert("Innings Over");
     navigate("/innings-summary");
+    // here will be the code to send data to matchdetail database after match end
   }
 }
-
 
 
   return (
