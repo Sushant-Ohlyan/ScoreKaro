@@ -15,21 +15,16 @@ const matchDetailSchema = new Schema({
     umpireName3: { type: String, required: false },
     tossWonBy: { type: String, required: true },
     tossDecision: { type: String, required: true },
+    score:{type: Number, required: true},
+    inning:{type:Number, required: true},
+    wickets:{type:Number, required: true},    
+    runRate:{type:Number, required:true},
+    topPerformerBatTeamA:{type:String, required:true},
+    topPerformerBatTeamB:{type:String, required:true},
+    topPerformerBallTeamA:{type:String, required:true},
+    topPerformerBallTeamB:{type:String, required:true},
 
 });
-
-
-
-
-
-const thisInningSchema = new Schema({
-    currentBattingTeam:{type:String, required: true},
-    currentBallingTeam:{type:String, required:true},
-    totalOvers:{type:String, required:true},
-    totalScore:{type:Number,required:true},
-    totalWickets:{type:Number,reqquired:true},
-})
-
 
 
 module.exports = mongoose.model('MatchDetail', matchDetailSchema);

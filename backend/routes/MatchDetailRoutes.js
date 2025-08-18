@@ -118,4 +118,13 @@ router.put('/bowler-detail', async(req,res)=>{
 }
 });
 
+router.get('/inning-summary', async(req,res)=>{
+  try {
+    const matches = await MatchDetail.find();
+    res.status(200).json(matches);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+})
+
 module.exports = router;

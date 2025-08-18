@@ -20,20 +20,17 @@ const InningSummary = () => {
     useEffect(() => {
         const fetchMatchData = async () => {
             try {
-                const response = await axios.get("http://localhost:5000/api/match/details");
+                const response = await axios.get("http://localhost:5000/api/match-details/inning-summary/");
                 const data = response.data;
-                setTeamA(data.teamA);
-                setTeamB(data.teamB);
+                setTeamA(data.teamAName);
+                setTeamB(data.teamBName);
                 setInning(data.inning);
                 setScore(data.score);
                 setOvers(data.overs);
                 setWickets(data.wickets);
                 setRunRate(data.runRate);
-                setTopScorer(data.topScorer);
                 setTopPerformerBat(data.topPerformerBat);
                 setTopPerformerBall(data.topPerformerBall);
-                setMostWickets(data.mostWickets);
-                setBestFielder(data.bestFielder);
             } catch (error) {
                 console.error("Error fetching match details:", error);
             }
