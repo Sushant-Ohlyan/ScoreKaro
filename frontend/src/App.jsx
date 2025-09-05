@@ -13,6 +13,8 @@ import CreateTeam from './components/CreateTeam';
 import InningSummary from './components/InningSummary';
 import Scorecard from './components/Scorecard';
 import Test3 from './components/Test3';
+import Test4 from './components/Test4';
+import Test5 from './components/Test5';
 import Test from './components/Test';
 import Temp from './components/Temp';
 import Matchsetup from './components/Matchsetup';
@@ -41,6 +43,8 @@ function App() {
         <Route path="/test" element={<Test />} />
         <Route path="/temp" element={<Temp />} />
         <Route path="/test3" element={<Test3 />} />
+        <Route path="/test4" element={<Test4 />} />
+        <Route path="/test5" element={<Test5 />} />
       </Routes>
       <Footer />
     </>

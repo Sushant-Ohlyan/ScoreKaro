@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../style/Teamsetup.css";
 import centerImg from "../assets/b.png"; 
@@ -14,6 +14,9 @@ const TeamSetupPage = () => {
   const [teamAPlayers, setTeamAPlayers] = useState(Array(11).fill(""));
   const [teamBPlayers, setTeamBPlayers] = useState(Array(11).fill(""));
 
+  // Refs for Enter key navigation
+  const teamARefs = useRef([]);
+  const teamBRefs = useRef([]);
 
   const handleTeamAPlayerChange = (index, value) => {
     const updated = [...teamAPlayers];
@@ -30,45 +33,40 @@ const TeamSetupPage = () => {
   const addPlayerToTeamA = () => setTeamAPlayers([...teamAPlayers, ""]);
   const addPlayerToTeamB = () => setTeamBPlayers([...teamBPlayers, ""]);
 
-  const handleSaveTeamA = async () => {
-  if (!teamAName) {
-    alert("Please enter Team A name.");
-    return;
-  }
-  if (teamAPlayers.some((player) => !player)) {
-    alert("Please fill all player names.");
-    return;
-  }
-  try {
-    const res = await axios.post("http://localhost:5000/api/team-save/save", {
-      teamName: teamAName,
-      teamPlayers: teamAPlayers,
-    });
-    alert(res.data.message || "Team saved successfully!");
-  } catch (err) {
-    console.error(err);
-    alert("Error saving team data.");
-  }
-};
+  const checkDuplicatePlayers = () => {
+    const allPlayers = [...teamAPlayers, ...teamBPlayers].map(p => p.trim().toLowerCase());
+    const duplicates = allPlayers.filter((p, i) => allPlayers.indexOf(p) !== i && p !== "");
+    return duplicates.length > 0;
+  };
 
+  const handleSaveTeamA = async () => {
+    if (!teamAName) return alert("Please enter Team A name.");
+    if (teamAPlayers.some((player) => !player)) return alert("Please fill all player names.");
+    if (checkDuplicatePlayers()) return alert("Duplicate player names detected across both teams.");
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/team-save/save", {
+        teamName: teamAName,
+        teamPlayers: teamAPlayers,
+      });
+      alert(res.data.message || "Team A saved successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Error saving team data.");
+    }
+  };
 
   const handleSaveTeamB = async () => {
-    if (!teamBName) {
-      alert("Please enter Team B name.");
-      return;
-    }
-    if (teamBPlayers.some((player) => !player)) {
-      alert("Please fill all player names.");
-      return;
-    }
-    alert("Team saved successfully!");
+    if (!teamBName) return alert("Please enter Team B name.");
+    if (teamBPlayers.some((player) => !player)) return alert("Please fill all player names.");
+    if (checkDuplicatePlayers()) return alert("Duplicate player names detected across both teams.");
 
     try {
       const res = await axios.post("http://localhost:5000/api/team-save/save", {
         teamName: teamBName,
         teamPlayers: teamBPlayers,
       });
-      alert(res.data.message || "Team saved successfully!");
+      alert(res.data.message || "Team B saved successfully!");
     } catch (err) {
       console.error(err);
       alert("Error saving team data.");
@@ -76,20 +74,13 @@ const TeamSetupPage = () => {
   };
 
   const handleSubmit = async () => {
-    const data = {
-      teamAName,
-      teamBName,
-      teamAPlayers,
-      teamBPlayers,
-    };
+    if (checkDuplicatePlayers()) return alert("Duplicate player names detected across both teams.");
+
+    const data = { teamAName, teamBName, teamAPlayers, teamBPlayers };
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/team-setup/save",
-        data
-      );
+      const res = await axios.post("http://localhost:5000/api/team-setup/save", data);
       alert(res.data.message);
-      console.log("Saved:", res.data);
       setTeamSaveSuccess(true);
     } catch (err) {
       console.error(err);
@@ -99,9 +90,23 @@ const TeamSetupPage = () => {
 
   const handleNext = () => {
     if (teamSaveSuccess) {
-      navigate("/matchsetup", { state: { teamAName, teamBName } });
+      navigate("/matchsetup", {
+        state: { teamAName, teamBName, teamAPlayers, teamBPlayers },
+      });
     } else {
       alert("Please save the teams before proceeding.");
+    }
+  };
+
+  // Handle Enter key to focus next input
+  const handleKeyDown = (e, index, team) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (team === "A") {
+        if (teamARefs.current[index + 1]) teamARefs.current[index + 1].focus();
+      } else {
+        if (teamBRefs.current[index + 1]) teamBRefs.current[index + 1].focus();
+      }
     }
   };
 
@@ -126,7 +131,9 @@ const TeamSetupPage = () => {
                 type="text"
                 placeholder={`Player ${index + 1}`}
                 value={player}
+                ref={(el) => (teamARefs.current[index] = el)}
                 onChange={(e) => handleTeamAPlayerChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, index, "A")}
               />
             ))}
             <button onClick={addPlayerToTeamA}>+ Add Player</button>
@@ -138,6 +145,7 @@ const TeamSetupPage = () => {
           <img src={centerImg} alt="Center" />
         </div>
 
+        {/* Team B Card */}
         <div className="team-card">
           <h3>Team B</h3>
           <input
@@ -154,7 +162,9 @@ const TeamSetupPage = () => {
                 type="text"
                 placeholder={`Player ${index + 1}`}
                 value={player}
+                ref={(el) => (teamBRefs.current[index] = el)}
                 onChange={(e) => handleTeamBPlayerChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, index, "B")}
               />
             ))}
             <button onClick={addPlayerToTeamB}>+ Add Player</button>
@@ -163,19 +173,14 @@ const TeamSetupPage = () => {
         </div>
       </div>
 
-
-        
       <div className="button-group">
-
         <div className="back-button">
           <BackButton />
         </div>
-
         <button className="submit-button" onClick={handleSubmit}>
           Save Teams
         </button>
-
-        <button className="next-button" onClick={() => handleNext()} disabled={!teamSaveSuccess}>
+        <button className="next-button" onClick={handleNext} disabled={!teamSaveSuccess}>
           Next
         </button>
       </div>

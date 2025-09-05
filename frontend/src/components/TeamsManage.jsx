@@ -1,33 +1,28 @@
 import React, { useEffect, useState } from "react";
-import '../style/TeamManage.css';
-import axios from 'axios';
+import "../style/TeamManage.css";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
 
 const TeamManage = () => {
   const navigate = useNavigate();
-
   const [teams, setTeams] = useState([]);
-  const [teamName, setTeamName] = useState("");
-  const [teamPlayers, setTeamPlayers] = useState([""]);
+
+  // Fetch teams
+  const fetchTeams = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/team-manage");
+      setTeams(res.data);
+    } catch (err) {
+      console.error("Error fetching teams:", err);
+    }
+  };
 
   useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const res = await fetch("http://localhost:5000/api/team-manage");
-        const data = await res.json();
-        setTeams(data);
-      } catch (err) {
-        console.error("Error fetching teams:", err);
-      }
-    };
-
     fetchTeams();
   }, []);
 
   const handleAddTeam = () => {
-    
-    navigate("/teamsetup");
+    navigate("/teamsetup"); // your team setup page
   };
 
   const handleViewTeam = (team) => {
@@ -36,8 +31,14 @@ const TeamManage = () => {
     );
   };
 
-  const handleDeleteTeam = (id) => {
-    alert(`Delete team with id: ${id}`);
+  const handleDeleteTeam = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this team?")) return;
+    try {
+      await axios.delete(`http://localhost:5000/api/team-manage/${id}`);
+      setTeams((prev) => prev.filter((team) => team._id !== id)); // update UI
+    } catch (err) {
+      console.error("Error deleting team:", err);
+    }
   };
 
   return (
@@ -49,13 +50,10 @@ const TeamManage = () => {
         ) : (
           teams.map((team) => (
             <div key={team._id} className="team-manage-card">
-              <h3 className="team-manage-name">
-                {team.teamName} 
-              </h3>
+              <h3 className="team-manage-name">{team.teamName}</h3>
               <p className="team-manage-count">
-                {team.teamName} Players: {team.teamPlayers?.length || 0}
+                Players: {team.teamPlayers?.length || 0}
               </p>
-              
               <div className="team-manage-actions">
                 <button
                   onClick={() => handleViewTeam(team)}
@@ -82,6 +80,7 @@ const TeamManage = () => {
 };
 
 export default TeamManage;
+
 
 // retrieve all teams from db
 // add the component to create new teams
