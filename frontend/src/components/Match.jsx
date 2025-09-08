@@ -431,56 +431,12 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import "../style/Match.css";
 
-/**
- * Match.jsx (Hybrid: Frontend scoring + Backend persistence)
- *
- * WHAT THIS FILE DOES
- * --------------------
- * - All cricket scoring logic is handled on the frontend (runs, wickets, extras, strike swap, undo, bowlers/batsmen, commentary).
- * - The backend is only used to:
- *      1) Fetch initial match data at the start (teams, players, toss, etc.)
- *      2) Save a snapshot every over
- *      3) Save an inning summary when the inning ends
- *      4) Save a final match summary when the match ends (2nd innings complete)
- *
- * HOW TO USE
- * ----------
- * - Navigate to this route with `useLocation.state` from MatchSetup.jsx.
- *   Expected `location.state` (examples / optional fallback defaults):
- *     {
- *       matchId: "<mongo-id>",
- *       teamAName: "Team A",
- *       teamBName: "Team B",
- *       teamAPlayers: ["A1", "A2", ... up to 11],
- *       teamBPlayers: ["B1", "B2", ... up to 11],
- *       venueName: "Stadium Name",
- *       tossWonBy: "Team A",
- *       tossDecision: "Bat" | "Bowl",
- *       overs: 20, // <-- authoritative from MatchSetup.jsx (your note)
- *       inningsNumber: 1, // 1 or 2
- *       totalInnings: 2,   // usually 2
- *       battingFirst: "Team A", // optional
- *       bowlingFirst: "Team B", // optional
- *     }
- *
- * - If some fields are missing in `location.state`, we attempt to fetch them from backend.
- * - API BASE is configurable. See `api` object below.
- *
- * NOTES
- * -----
- * - Keep code simple & verbose with comments for clarity. You can delete comments later.
- * - UI is plain; you can style more in ../style/Match.css.
- */
-
-// -------------------------------
-// API CONFIG
-// -------------------------------
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000",
   headers: { "Content-Type": "application/json" },
 });
 
-// Build endpoint paths in one place so it's easy to change later
+
 const endpoints = {
   getMatch: (id) => `/api/scoring/${id}`,
   overUpdate: (id) => `/api/scoring/${id}/over-update`,
@@ -488,9 +444,6 @@ const endpoints = {
   matchComplete: (id) => `/api/scoring/${id}/match-complete`,
 };
 
-// -------------------------------
-// Helpers to create default squads for quick testing
-// -------------------------------
 const getDefaultBatsmen = () =>
   Array.from({ length: 11 }, (_, i) => ({
     name: `batsman${i + 1}`,
@@ -511,18 +464,14 @@ const getDefaultBowlers = () =>
     maidens: 0, // simple calc at over end if over conceded 0
   }));
 
-// Deep clone utility for snapshots/undo
 const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
 export default function Match() {
-  // Router
+
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams(); // optional if you also embed :matchId in route
 
-  // -------------------------------
-  // Parse incoming location.state (authoritative overs come from here per your instruction)
-  // -------------------------------
   const {
     matchId: matchIdFromState,
     teamAName: teamAFromState,
@@ -539,24 +488,18 @@ export default function Match() {
     bowlingFirst: bowlingFirstFromState,
   } = location.state || {};
 
-  // If route contains :matchId, use it; otherwise use state. (Both supported)
   const routeMatchId = params.matchId;
   const matchId = matchIdFromState || routeMatchId || "temp-local"; // fallback id
 
-  // Authoritative overs from location.state (as requested)
   const configuredOvers = Number(oversFromState) || 20; // default to 20 if missing
   const maxBallsInInnings = configuredOvers * 6;
 
-  // -------------------------------
-  // Local UI + Match state
-  // -------------------------------
   const [loading, setLoading] = useState(true);
   const [initialFetchError, setInitialFetchError] = useState("");
 
-  // scoreboard basic
   const [currentBattingTeamScore, setCurrentBattingTeamScore] = useState(0);
   const [currentWicketCount, setCurrentWicketCount] = useState(0);
-  const [ballsCount, setBallsCount] = useState(0); // legal balls in the innings
+  const [ballsCount, setBallsCount] = useState(0); 
 
   // teams & venue
   const [teamAName, setTeamAName] = useState(teamAFromState || "Team A");
@@ -599,21 +542,20 @@ export default function Match() {
   const [showBatsmanDropdown, setShowBatsmanDropdown] = useState(false);
   const [selectedNextBatsmanIdx, setSelectedNextBatsmanIdx] = useState(null);
 
-  // bowling control
+
   const [currentBowlerIdx, setCurrentBowlerIdx] = useState(0);
   const [showBowlerDropdown, setShowBowlerDropdown] = useState(false);
   const [selectedNextBowlerIdx, setSelectedNextBowlerIdx] = useState(null);
   const [lastOverRunsThisBowler, setLastOverRunsThisBowler] = useState(0); // used to calculate maidens
 
-  // extras UI
+
   const [extraType, setExtraType] = useState(null); // 'nb' | 'wide' | 'bye' | 'lb'
   const [extraRun, setExtraRun] = useState(1); // default 1 per extra button
 
-  // history & commentary
+
   const [ballHistory, setBallHistory] = useState([]); // array of entries
   const commentaryRef = useRef(null);
 
-  // Navigation state packing helper (for summaries)
   const summaryState = useMemo(() => ({
     matchId,
     inningsNumber,
@@ -640,14 +582,8 @@ export default function Match() {
     currentBowlingTeam,
   ]);
 
-  // Overs display "x.y"
   const oversDisplay = `${Math.floor(ballsCount / 6)}.${ballsCount % 6}`;
 
-  // ---------------------------------
-  // INITIAL FETCH (API #1) when component mounts
-  //   - We respect overs from location.state (authoritative),
-  //     but we may fetch players/names/venue/toss if not provided.
-  // ---------------------------------
   useEffect(() => {
     let canceled = false;
 

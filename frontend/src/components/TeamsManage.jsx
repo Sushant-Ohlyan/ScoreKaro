@@ -22,7 +22,7 @@ const TeamManage = () => {
   }, []);
 
   const handleAddTeam = () => {
-    navigate("/teamsetup"); // your team setup page
+    navigate("/teamadd"); // your team setup page
   };
 
   const handleViewTeam = (team) => {

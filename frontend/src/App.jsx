@@ -21,6 +21,7 @@ import Matchsetup from './components/Matchsetup';
 import Teamsetup from './components/Teamsetup';
 import './style/App.css';
 import TeamsManage from './components/TeamsManage';
+import TeamAdd from './components/TeamAdd';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
         <Route path="/test3" element={<Test3 />} />
         <Route path="/test4" element={<Test4 />} />
         <Route path="/test5" element={<Test5 />} />
+        <Route path="/teamadd" element={<TeamAdd />} />
       </Routes>
       <Footer />
     </>
