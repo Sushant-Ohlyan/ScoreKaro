@@ -1,13 +1,15 @@
+// routes/scoringRoutes.js
 const express = require("express");
 const router = express.Router();
 const Scoring = require("../models/Scoring");
 const MatchSetup = require("../models/MatchSetup");
 const TeamSetup = require("../models/TeamSetup");
 
+
 // 🎯 Start Scoring (Inning 1)
 router.post("/start", async (req, res) => {
   try {
-    const { matchId, teamSetupId, battingTeam } = req.body;
+    const { matchId, teamSetupId, battingTeam, bowlingTeam } = req.body;
 
     const match = await MatchSetup.findById(matchId);
     const teamSetup = await TeamSetup.findById(teamSetupId);
@@ -20,10 +22,25 @@ router.post("/start", async (req, res) => {
       matchId,
       teamSetupId,
       innings: [
-        { team: battingTeam, overs: [], totalRuns: 0, wickets: 0 }
+        {
+          battingTeam,
+          bowlingTeam,
+          runs: 0,
+          wickets: 0,
+          overs: 0,
+          balls: 0,
+          oversDetail: [],
+          batsmen: [],
+          bowlers: [],
+          extras: { wides: 0, noBalls: 0, legByes: 0, byes: 0 },
+          fallOfWickets: [],
+          commentary: [],
+        },
       ],
       currentInnings: 1,
-      matchCompleted: false
+      currentOver: 1,
+      currentBall: 1,
+      matchCompleted: false,
     });
 
     await scoring.save();
@@ -33,19 +50,31 @@ router.post("/start", async (req, res) => {
   }
 });
 
+
 // 🎯 Save Over Update
 router.put("/over/:id", async (req, res) => {
   try {
-    const { score, wickets, overs, batsmen, bowlers, ballHistory } = req.body;
+    const { overNumber, balls, runs, wickets, batsmen, bowlers } = req.body;
     const scoring = await Scoring.findById(req.params.id);
     if (!scoring) return res.status(404).json({ error: "Scoring not found" });
 
     let inning = scoring.innings[scoring.currentInnings - 1];
-    inning.overs.push({ score, wickets, overs, batsmen, bowlers, ballHistory });
 
-    // update totals
-    inning.totalRuns = score;
+    // Add new over details
+    inning.oversDetail.push({
+      overNumber,
+      balls,
+    });
+
+    // Update totals
+    inning.runs = runs;
     inning.wickets = wickets;
+    inning.overs = overNumber;
+    inning.batsmen = batsmen;
+    inning.bowlers = bowlers;
+
+    scoring.currentOver = overNumber;
+    scoring.currentBall = balls.length;
 
     await scoring.save();
     res.json(scoring);
@@ -54,22 +83,38 @@ router.put("/over/:id", async (req, res) => {
   }
 });
 
+
 // 🎯 End Inning
 router.post("/inning-complete/:id", async (req, res) => {
   try {
-    const scoring = await Scoring.findById(req.params.id)
-      .populate("teamSetupId");
+    const scoring = await Scoring.findById(req.params.id).populate("teamSetupId");
     if (!scoring) return res.status(404).json({ error: "Scoring not found" });
 
     if (scoring.currentInnings === 1) {
-      // Switch to second innings
       const teamSetup = scoring.teamSetupId;
-      const firstTeam = scoring.innings[0].team;
-      const nextTeam =
-        firstTeam === teamSetup.teamAName ? teamSetup.teamBName : teamSetup.teamAName;
+      const firstBatting = scoring.innings[0].battingTeam;
+      const secondBatting =
+        firstBatting === teamSetup.teamAName ? teamSetup.teamBName : teamSetup.teamAName;
+      const secondBowling = firstBatting;
 
-      scoring.innings.push({ team: nextTeam, overs: [], totalRuns: 0, wickets: 0 });
+      scoring.innings.push({
+        battingTeam: secondBatting,
+        bowlingTeam: secondBowling,
+        runs: 0,
+        wickets: 0,
+        overs: 0,
+        balls: 0,
+        oversDetail: [],
+        batsmen: [],
+        bowlers: [],
+        extras: { wides: 0, noBalls: 0, legByes: 0, byes: 0 },
+        fallOfWickets: [],
+        commentary: [],
+      });
+
       scoring.currentInnings = 2;
+      scoring.currentOver = 1;
+      scoring.currentBall = 1;
     }
 
     await scoring.save();
@@ -78,6 +123,7 @@ router.post("/inning-complete/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // 🎯 End Match
 router.post("/match-complete/:id", async (req, res) => {
@@ -90,14 +136,14 @@ router.post("/match-complete/:id", async (req, res) => {
 
     scoring.matchCompleted = true;
 
-    if (team1.totalRuns > team2.totalRuns) {
-      scoring.winner = team1.team;
-      scoring.result = `${team1.team} won by ${team1.totalRuns - team2.totalRuns} runs`;
-    } else if (team2.totalRuns > team1.totalRuns) {
-      scoring.winner = team2.team;
-      scoring.result = `${team2.team} won by ${10 - team2.wickets} wickets`;
+    if (team1.runs > team2.runs) {
+      scoring.winner = team1.battingTeam;
+      scoring.result = `${team1.battingTeam} won by ${team1.runs - team2.runs} runs`;
+    } else if (team2.runs > team1.runs) {
+      scoring.winner = team2.battingTeam;
+      scoring.result = `${team2.battingTeam} won by ${10 - team2.wickets} wickets`;
     } else {
-      scoring.winner = "Draw";
+      scoring.winner = null;
       scoring.result = "Match tied";
     }
 
@@ -108,12 +154,15 @@ router.post("/match-complete/:id", async (req, res) => {
   }
 });
 
+
 // 🎯 Get Scoring State
 router.get("/:id", async (req, res) => {
   try {
     const scoring = await Scoring.findById(req.params.id)
       .populate("matchId")
       .populate("teamSetupId");
+    if (!scoring) return res.status(404).json({ error: "Scoring not found" });
+
     res.json(scoring);
   } catch (err) {
     res.status(500).json({ error: err.message });

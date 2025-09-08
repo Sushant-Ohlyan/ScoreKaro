@@ -13,12 +13,16 @@ const scoringRoutes = require('./routes/scoringRoutes');
 dotenv.config();
 const app = express();
 
+
+
 app.use(cors());
 app.use(express.json());
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.error("Mongo Error", err));
+mongoose.set("debug", true);
+
 
 app.use('/api/team-setup', teamRoutes);
 app.use('/api/match-setup', matchSetupRoutes);
