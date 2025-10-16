@@ -16,6 +16,7 @@ import Test3 from './components/Test3';
 import Test4 from './components/Test4';
 import Test5 from './components/Test5';
 import Test from './components/Test';
+import Test6 from './components/Test6';
 import Temp from './components/Temp';
 import Matchsetup from './components/Matchsetup';
 import Teamsetup from './components/Teamsetup';
@@ -28,9 +29,9 @@ function App() {
     <>
     <Navbar />
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/home" element={<Home />} />
+        {/* <Route path="/" element={<Login />} /> */}
+        {/* <Route path="/signup" element={<Signup />} /> */}
+        <Route path="/" element={<Home />} />
         <Route path="/matchsetup" element={<Matchsetup />} />
         <Route path="/teamsetup" element={<Teamsetup />} />
         <Route path="/matches" element={<Matches />} />
@@ -46,6 +47,7 @@ function App() {
         <Route path="/test3" element={<Test3 />} />
         <Route path="/test4" element={<Test4 />} />
         <Route path="/test5" element={<Test5 />} />
+        <Route path="/test6" element={<Test6 />} />
         <Route path="/teamadd" element={<TeamAdd />} />
       </Routes>
       <Footer />

@@ -7,11 +7,15 @@ const matchSetupSchema = new mongoose.Schema({
   venue: { type: String, required: true },
   umpireName1: { type: String, required: true },
   umpireName2: { type: String, required: true },
-  umpireName3: { type: String, required: false },
+  umpireName3: { type: String },
   tossWonBy: { type: String, required: true },
   tossDecision: { type: String, required: true },
+
+  // 🗓️ New fields
+  matchDate: { type: String, required: true },
+  matchTime: { type: String, required: true },
+
 }, { timestamps: true });
 
 const MatchSetup = mongoose.model('MatchSetup', matchSetupSchema);
-
 module.exports = MatchSetup;

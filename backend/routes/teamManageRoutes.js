@@ -12,13 +12,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Add a team
-router.post('/', async (req, res) => {
+// Add a team (alias: / or /save)
+router.post(['/','/save'], async (req, res) => {
   try {
     const { teamName, teamPlayers } = req.body;
     const newTeam = new TeamSave({ teamName, teamPlayers });
     await newTeam.save();
-    res.status(201).json(newTeam);
+    res.status(201).json({ message: "Team saved successfully!", team: newTeam });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,0 +1,51 @@
+.match-summary-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.match-summary {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 25px;
+  width: 80%;
+  max-width: 700px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #000;
+}
+
+.match-summary h2 {
+  color: #007bff;
+}
+
+.match-summary table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.match-summary table th,
+.match-summary table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.match-summary table th {
+  background-color: #f4f4f4;
+}
+
+.pdf-btn {
+  margin-top: 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.pdf-btn:hover {
+  background-color: #0056b3;
+}

@@ -1,315 +1,263 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import "../style/Match.css";
+import { useNavigate } from "react-router-dom";
+import "../style/Test2.css";
+import centerImg from "../assets/b.png"; 
+import axios from "axios";
+import BackButton from "./BackButton";
 
-const Test3 = () => {
+const TeamSetupPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [teamSaveSuccess, setTeamSaveSuccess] = useState(false); 
 
-  const {
-    teamAName = "Team A",
-    teamBName = "Team B",
-    teamAPlayers = [],
-    teamBPlayers = [],
-    venue = "Stadium",
-    tossWonBy,
-    tossDecision,
-    overs = 5,
-  } = location.state || {};
+  const [teamAName, setTeamAName] = useState("");
+  const [teamBName, setTeamBName] = useState("");
+  const [teamAPlayers, setTeamAPlayers] = useState(Array(11).fill(""));
+  const [teamBPlayers, setTeamBPlayers] = useState(Array(11).fill(""));
 
-  const [currentBattingTeam, setCurrentBattingTeam] = useState(
-    tossDecision === "Bat"
-      ? tossWonBy
-      : tossWonBy === teamAName
-      ? teamBName
-      : teamAName
-  );
+  const [existingTeams, setExistingTeams] = useState([]);
+  const [selectedTeamA, setSelectedTeamA] = useState("");
+  const [selectedTeamB, setSelectedTeamB] = useState("");
 
-  const [score, setScore] = useState(0);
-  const [wickets, setWickets] = useState(0);
-  const [balls, setBalls] = useState(0);
-  const [commentary, setCommentary] = useState([]);
-  const commentaryRef = useRef(null);
+  // Refs for Enter key navigation
+  const teamARefs = useRef([]);
+  const teamBRefs = useRef([]);
 
-  const maxBalls = overs * 6;
-
-  const [playingBatsmen, setPlayingBatsmen] = useState([]);
-  const [playingBowler, setPlayingBowler] = useState(null);
-
-  const [availableBatsmen, setAvailableBatsmen] = useState(
-    currentBattingTeam === teamAName ? [...teamAPlayers] : [...teamBPlayers]
-  );
-  const [availableBowler, setAvailableBowler] = useState(
-    currentBattingTeam === teamAName ? [...teamBPlayers] : [...teamAPlayers]
-  );
-
-  const [selectedBatsman, setSelectedBatsman] = useState("");
-  const [selectedBowler, setSelectedBowler] = useState("");
-
-  const [showBatsmanBtn, setShowBatsmanBtn] = useState(true);
-  const [showBowlerBtn, setShowBowlerBtn] = useState(true);
-
-  const [extraRunsInput, setExtraRunsInput] = useState(null);
-  const [history, setHistory] = useState([]);
-
-  // Bowler stats
-  const [bowlerStats, setBowlerStats] = useState({ overs: 0, balls: 0, wickets: 0 });
-
-  const saveHistory = () => {
-    setHistory((prev) => [
-      ...prev,
-      {
-        score,
-        wickets,
-        balls,
-        commentary: [...commentary],
-        playingBatsmen: JSON.parse(JSON.stringify(playingBatsmen)),
-        playingBowler,
-        extraRunsInput,
-        availableBatsmen: [...availableBatsmen],
-        availableBowler: [...availableBowler],
-        showBatsmanBtn,
-        showBowlerBtn,
-        bowlerStats: { ...bowlerStats },
-      },
-    ]);
-  };
-
-  const addBatsman = () => {
-    if (!selectedBatsman) return;
-    saveHistory();
-    const newBat = availableBatsmen.find((b) => b === selectedBatsman);
-    setPlayingBatsmen((prev) => [...prev, { name: newBat, runs: 0, balls: 0 }]);
-    setAvailableBatsmen((prev) => prev.filter((b) => b !== selectedBatsman));
-    setSelectedBatsman("");
-    setShowBatsmanBtn(false);
-    addCommentary(`${newBat} comes to bat!`);
-  };
-
-  const addBowler = () => {
-    if (!selectedBowler) return;
-    saveHistory();
-    setPlayingBowler(selectedBowler);
-    setAvailableBowler((prev) => prev.filter((b) => b !== selectedBowler));
-    setSelectedBowler("");
-    setShowBowlerBtn(false);
-    setBowlerStats({ overs: 0, balls: 0, wickets: 0 });
-    addCommentary(`${selectedBowler} starts bowling!`);
-  };
-
-  const addCommentary = (text) => {
-    setCommentary((prev) => [...prev, text]);
-  };
-
-  const swapStrike = () => {
-    setPlayingBatsmen((prev) => {
-      if (prev.length < 2) return prev;
-      const newBatsmen = [...prev];
-      [newBatsmen[0], newBatsmen[1]] = [newBatsmen[1], newBatsmen[0]];
-      return newBatsmen;
-    });
-  };
-
-  const updateScore = (runs = 0, type = "runs") => {
-    if (balls >= maxBalls || wickets >= 10) return;
-    saveHistory();
-
-    if (type !== "runs") {
-      setExtraRunsInput({ type, runs: 1 });
-      return;
-    }
-
-    setScore((prev) => prev + runs);
-    setBalls((prev) => prev + 1);
-
-    // Update striker runs and balls
-    setPlayingBatsmen((prev) => {
-      const updated = [...prev];
-      if (updated[0]) {
-        updated[0].runs += runs;
-        updated[0].balls += 1;
+  // Fetch existing teams on mount
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/team-save");
+        setExistingTeams(res.data);
+      } catch (err) {
+        console.error("Error fetching teams:", err);
       }
-      return updated;
-    });
+    };
+    fetchTeams();
+  }, []);
 
-    // Update bowler stats
-    setBowlerStats((prev) => {
-      let b = prev.balls + 1;
-      let o = prev.overs;
-      if (b === 6) {
-        o += 1;
-        b = 0;
-        swapStrike(); // swap strike at end of over
-        setShowBowlerBtn(true); // new bowler can be added
-      }
-      return { ...prev, overs: o, balls: b };
-    });
-
-    addCommentary(`${runs} run(s)`);
-
-    if (runs % 2 !== 0) swapStrike();
+  const handleTeamAPlayerChange = (index, value) => {
+    const updated = [...teamAPlayers];
+    updated[index] = value;
+    setTeamAPlayers(updated);
   };
 
-  const confirmExtraRuns = () => {
-    if (!extraRunsInput) return;
-    saveHistory();
-    const extra = Number(extraRunsInput.runs) || 0;
-    const type = extraRunsInput.type;
+  const handleTeamBPlayerChange = (index, value) => {
+    const updated = [...teamBPlayers];
+    updated[index] = value;
+    setTeamBPlayers(updated);
+  };
 
-    setScore((prev) => prev + extra);
+  const addPlayerToTeamA = () => setTeamAPlayers([...teamAPlayers, ""]);
+  const addPlayerToTeamB = () => setTeamBPlayers([...teamBPlayers, ""]);
 
-    if (type === "Bye") {
-      setBalls((prev) => prev + 1);
-      setBowlerStats((prev) => {
-        let b = prev.balls + 1;
-        let o = prev.overs;
-        if (b === 6) {
-          o += 1;
-          b = 0;
-          swapStrike();
-          setShowBowlerBtn(true);
-        }
-        return { ...prev, overs: o, balls: b };
+  const checkDuplicatePlayers = () => {
+    const allPlayers = [...teamAPlayers, ...teamBPlayers].map(p => p.trim().toLowerCase());
+    const duplicates = allPlayers.filter((p, i) => allPlayers.indexOf(p) !== i && p !== "");
+    return duplicates.length > 0;
+  };
+
+  // Save Teams
+  const handleSaveTeamA = async () => {
+    if (!teamAName) return alert("Please enter Team A name.");
+    if (teamAPlayers.some((player) => !player)) return alert("Please fill all player names.");
+    if (checkDuplicatePlayers()) return alert("Duplicate player names detected across both teams.");
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/team-save/save", {
+        teamName: teamAName,
+        teamPlayers: teamAPlayers,
       });
+      alert(res.data.message || "Team A saved successfully!");
+      setTeamSaveSuccess(true);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving team data.");
     }
-
-    addCommentary(`${extra} extra run(s) for ${type}`);
-    setExtraRunsInput(null);
-
-    if (extra % 2 !== 0) swapStrike();
   };
 
-  const updateWicket = () => {
-    if (balls >= maxBalls || wickets >= 10) return;
-    saveHistory();
+  const handleSaveTeamB = async () => {
+    if (!teamBName) return alert("Please enter Team B name.");
+    if (teamBPlayers.some((player) => !player)) return alert("Please fill all player names.");
+    if (checkDuplicatePlayers()) return alert("Duplicate player names detected across both teams.");
 
-    setWickets((prev) => prev + 1);
-    setBalls((prev) => prev + 1);
-
-    setPlayingBatsmen((prev) => prev.slice(1));
-    addCommentary("Wicket!");
-
-    setBowlerStats((prev) => ({ ...prev, wickets: prev.wickets + 1 }));
-    setShowBatsmanBtn(true);
-
-    swapStrike();
-  };
-
-  const undo = () => {
-    const last = history.pop();
-    if (!last) return;
-    setScore(last.score);
-    setWickets(last.wickets);
-    setBalls(last.balls);
-    setCommentary(last.commentary);
-    setPlayingBatsmen(last.playingBatsmen);
-    setPlayingBowler(last.playingBowler);
-    setExtraRunsInput(last.extraRunsInput);
-    setAvailableBatsmen(last.availableBatsmen);
-    setAvailableBowler(last.availableBowler);
-    setShowBatsmanBtn(last.showBatsmanBtn);
-    setShowBowlerBtn(last.showBowlerBtn);
-    setBowlerStats(last.bowlerStats);
-    setHistory([...history]);
-  };
-
-  useEffect(() => {
-    if (commentaryRef.current) commentaryRef.current.scrollTop = commentaryRef.current.scrollHeight;
-  }, [commentary]);
-
-  useEffect(() => {
-    if (balls >= maxBalls || wickets >= 10) {
-      addCommentary("Innings Ended!");
-      alert("Innings Ended!");
+    try {
+      const res = await axios.post("http://localhost:5000/api/team-save/save", {
+        teamName: teamBName,
+        teamPlayers: teamBPlayers,
+      });
+      alert(res.data.message || "Team B saved successfully!");
+      setTeamSaveSuccess(true);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving team data.");
     }
-  }, [balls, wickets, maxBalls]);
+  };
 
-  useEffect(() => {
-    if (playingBatsmen.length < 2 && availableBatsmen.length > 0) setShowBatsmanBtn(true);
-    if (!playingBowler && availableBowler.length > 0) setShowBowlerBtn(true);
-  }, [playingBatsmen, playingBowler, availableBatsmen, availableBowler]);
+  const handleSubmit = async () => {
+    if (checkDuplicatePlayers()) return alert("Duplicate player names detected across both teams.");
+
+    const data = { teamAName, teamBName, teamAPlayers, teamBPlayers };
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/team-setup/save", data);
+      alert(res.data.message);
+      setTeamSaveSuccess(true);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving team data.");
+    }
+  };
+
+  const handleNext = () => {
+    if (teamSaveSuccess) {
+      navigate("/matchsetup", {
+        state: { teamAName, teamBName, teamAPlayers, teamBPlayers },
+      });
+    } else {
+      alert("Please save the teams before proceeding.");
+    }
+  };
+
+  // Handle Enter key to focus next input
+  const handleKeyDown = (e, index, team) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (team === "A") {
+        if (teamARefs.current[index + 1]) teamARefs.current[index + 1].focus();
+      } else {
+        if (teamBRefs.current[index + 1]) teamBRefs.current[index + 1].focus();
+      }
+    }
+  };
+
+  // Load existing team into inputs
+  const handleAddExistingTeam = (teamType) => {
+    const selectedId = teamType === "A" ? selectedTeamA : selectedTeamB;
+    if (!selectedId) return alert("Please select a team first.");
+    const team = existingTeams.find((t) => t._id === selectedId);
+    if (!team) return alert("Team not found.");
+
+    if (teamType === "A") {
+      setTeamAName(team.teamName);
+      setTeamAPlayers(team.teamPlayers);
+    } else {
+      setTeamBName(team.teamName);
+      setTeamBPlayers(team.teamPlayers);
+    }
+  };
 
   return (
-    <div className="match-container">
-      <div className="info-box match-info">
-        <h2>{teamAName} vs {teamBName}</h2>
-        <p>Venue: {venue}</p>
-        <p>Batting First: <b>{currentBattingTeam}</b></p>
-        <h3>{currentBattingTeam}: {score}/{wickets}</h3>
-        <p>Overs: {bowlerStats.overs}.{bowlerStats.balls} / {overs}</p>
-      </div>
+    <div className="team-setup-page">
+      <h2>Team Setup</h2>
+      <div className="team-setup-container">
+        {/* Team A Card */}
+        <div className="team-card">
+          <h3>Team A</h3>
+          <input
+            type="text"
+            placeholder="Enter Team A Name"
+            value={teamAName}
+            onChange={(e) => setTeamAName(e.target.value)}
+          />
 
-      <div className="grid-container">
-        <div className="info-box batsmen-info">
-          <h3>Current Batsmen</h3>
-          {playingBatsmen.map((b, idx) => (
-            <p key={idx}>🏏 {b.name}: {b.runs} ({b.balls} balls)</p>
-          ))}
-          {showBatsmanBtn && availableBatsmen.length > 0 && (
-            <>
-              <select value={selectedBatsman} onChange={(e) => setSelectedBatsman(e.target.value)}>
-                <option value="">Select Batsman</option>
-                {availableBatsmen.map((b) => <option key={b} value={b}>{b}</option>)}
-              </select>
-              <button onClick={addBatsman}>Add Batsman</button>
-            </>
-          )}
-        </div>
-
-        <div className="info-box bowler-info">
-          <h3>Current Bowler</h3>
-          {playingBowler && (
-            <p>🎯 {playingBowler} | Overs: {bowlerStats.overs}.{bowlerStats.balls} | Wickets: {bowlerStats.wickets}</p>
-          )}
-          {showBowlerBtn && availableBowler.length > 0 && (
-            <>
-              <select value={selectedBowler} onChange={(e) => setSelectedBowler(e.target.value)}>
-                <option value="">Select Bowler</option>
-                {availableBowler.map((b) => <option key={b} value={b}>{b}</option>)}
-              </select>
-              <button onClick={addBowler}>Add Bowler</button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="scoring-tray">
-        <h3>Scoring Tray</h3>
-        <div className="button-grid">
-          <button onClick={() => updateScore(0)}>0</button>
-          <button onClick={() => updateScore(1)}>1</button>
-          <button onClick={() => updateScore(2)}>2</button>
-          <button onClick={() => updateScore(3)}>3</button>
-          <button onClick={() => updateScore(4)}>4</button>
-          <button onClick={() => updateScore(6)}>6</button>
-          <button className="wicket-btn" onClick={updateWicket}>Wicket</button>
-          <button onClick={() => updateScore(1, "Wide")}>Wide</button>
-          <button onClick={() => updateScore(1, "No Ball")}>No Ball</button>
-          <button onClick={() => updateScore(1, "Bye")}>Bye</button>
-          <button className="undo-btn" onClick={undo}>Undo</button>
-        </div>
-
-        {extraRunsInput && (
-          <div className="extra-runs-input">
-            <p>Enter extra runs for {extraRunsInput.type}:</p>
-            <input
-              type="number"
-              value={extraRunsInput.runs}
-              onChange={(e) => setExtraRunsInput({ ...extraRunsInput, runs: e.target.value })}
-            />
-            <button onClick={confirmExtraRuns}>Confirm</button>
+          {/* Existing Teams Dropdown */}
+          <div className="existing-team-selector">
+            <select
+              value={selectedTeamA}
+              onChange={(e) => setSelectedTeamA(e.target.value)}
+            >
+              <option value="">Select Existing Team A</option>
+              {existingTeams.map((team) => (
+                <option key={team._id} value={team._id}>
+                  {team.teamName}
+                </option>
+              ))}
+            </select>
+            <button onClick={() => handleAddExistingTeam("A")}>Load Team A</button>
           </div>
-        )}
+
+          <div className="players-section">
+            <h4>Players</h4>
+            {teamAPlayers.map((player, index) => (
+              <input
+                key={index}
+                type="text"
+                placeholder={`Player ${index + 1}`}
+                value={player}
+                ref={(el) => (teamARefs.current[index] = el)}
+                onChange={(e) => handleTeamAPlayerChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, index, "A")}
+                className={player ? "input-expanded" : "input-collapsed"}
+              />
+            ))}
+            <button onClick={addPlayerToTeamA}>+ Add Player</button>
+            <button onClick={handleSaveTeamA}>Save Team A</button>
+          </div>
+        </div>
+
+        <div className="center-image">
+          <img src={centerImg} alt="Center" />
+        </div>
+
+        {/* Team B Card */}
+        <div className="team-card">
+          <h3>Team B</h3>
+          <input
+            type="text"
+            placeholder="Enter Team B Name"
+            value={teamBName}
+            onChange={(e) => setTeamBName(e.target.value)}
+          />
+
+          {/* Existing Teams Dropdown */}
+          <div className="existing-team-selector">
+            <select
+              value={selectedTeamB}
+              onChange={(e) => setSelectedTeamB(e.target.value)}
+            >
+              <option value="">Select Existing Team B</option>
+              {existingTeams.map((team) => (
+                <option key={team._id} value={team._id}>
+                  {team.teamName}
+                </option>
+              ))}
+            </select>
+            <button onClick={() => handleAddExistingTeam("B")}>Load Team B</button>
+          </div>
+
+          <div className="players-section">
+            <h4>Players</h4>
+            {teamBPlayers.map((player, index) => (
+              <input
+                key={index}
+                type="text"
+                placeholder={`Player ${index + 1}`}
+                value={player}
+                ref={(el) => (teamBRefs.current[index] = el)}
+                onChange={(e) => handleTeamBPlayerChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, index, "B")}
+                className={player ? "input-expanded" : "input-collapsed"}
+              />
+            ))}
+            <button onClick={addPlayerToTeamB}>+ Add Player</button>
+            <button onClick={handleSaveTeamB}>Save Team B</button>
+          </div>
+        </div>
       </div>
 
-      <div className="commentary-box" ref={commentaryRef}>
-        <h3>Commentary</h3>
-        <ul>
-          {commentary.map((c, idx) => <li key={idx}>{c}</li>)}
-        </ul>
+      <div className="button-group">
+        <div className="back-button">
+          <BackButton />
+        </div>
+        <button className="submit-button" onClick={handleSubmit}>
+          Save Teams
+        </button>
+        <button className="next-button" onClick={handleNext} disabled={!teamSaveSuccess}>
+          Next
+        </button>
       </div>
     </div>
   );
 };
 
-export default Test3;
+export default TeamSetupPage;
