@@ -1,6 +1,6 @@
 // src/components/Match.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import axios from "axios";
 import "../style/Match.css";
 import jsPDF from "jspdf";
@@ -8,10 +8,11 @@ import html2canvas from "html2canvas";
 
 /**
  * Match.jsx
- * - Full scoring UI + PDF export
- * - Integrates with backend endpoints (over-update, inning-complete, match-complete)
+ * - Full in-page scoring UI + PDF export
+ * - Removed navigation to other routes — match/innings complete flows happen on this page.
+ * - When final innings completes: compute winner, show result modal/alert, and (optionally) auto-download PDF.
  *
- * NOTE:
+ * Notes:
  * - Ensure api base URL is configured through env or default.
  * - Install jspdf and html2canvas: npm i jspdf html2canvas
  */
@@ -29,7 +30,7 @@ const endpoints = {
   matchComplete: (id) => `/api/scoring/${id}/match-complete`,
 };
 
-/* ---------- Helpers (defaults) ---------- */
+/* ---------- Defaults & helpers ---------- */
 const getDefaultBatsmen = () =>
   Array.from({ length: 11 }, (_, i) => ({
     name: `batsman${i + 1}`,
@@ -52,9 +53,9 @@ const getDefaultBowlers = () =>
 
 const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
-/* ---------- Main Component ---------- */
+/* ---------- Component ---------- */
 export default function Match() {
-  const navigate = useNavigate();
+  /* Router state */
   const location = useLocation();
   const params = useParams();
 
@@ -72,7 +73,6 @@ export default function Match() {
     inningsNumber: inningsNumberFromState = 1,
     totalInnings: totalInningsFromState = 2,
     battingFirst: battingFirstFromState,
-    bowlingFirst: bowlingFirstFromState,
   } = location.state || {};
 
   const routeMatchId = params.matchId;
@@ -99,7 +99,7 @@ export default function Match() {
   const [tossWonBy, setTossWonBy] = useState(tossWonByFromState || teamAFromState || "Team A");
   const [tossDecision, setTossDecision] = useState(tossDecisionFromState || "Bat");
 
-  // who bats first
+  // derived who bats first
   const derivedBattingFirst = useMemo(() => {
     if (battingFirstFromState) return battingFirstFromState;
     if (!tossWonBy || !tossDecision) return teamAName;
@@ -145,7 +145,16 @@ export default function Match() {
   // PDF auto-download setting
   const [autoDownloadOnComplete, setAutoDownloadOnComplete] = useState(false);
 
-  // derived summary (used when navigating or saving)
+  // keep track of completed innings results (for winner computation)
+  const [inningsResults, setInningsResults] = useState([]); // elements: {team, score, wickets, overs}
+
+  // prevent repeating end-of-innings flow multiple times
+  const [inningEndedProcessing, setInningEndedProcessing] = useState(false);
+
+  // Final result display
+  const [finalResult, setFinalResult] = useState(null); // { winner: 'Team A', reason: 'scored more runs', isTie: false, finalData }
+
+  // derived summary (used when saving)
   const summaryState = useMemo(
     () => ({
       matchId,
@@ -219,7 +228,7 @@ export default function Match() {
             }
           }
         } else {
-          // temp-local: use provided state arrays
+          // temp-local: use provided state arrays if present
           const aPlayers = teamAPlayersFromState || [];
           const bPlayers = teamBPlayersFromState || [];
           if (aPlayers.length && bPlayers.length) {
@@ -257,7 +266,7 @@ export default function Match() {
       canceled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // only once
 
   /* Keep commentary scrolled to bottom */
   useEffect(() => {
@@ -530,10 +539,10 @@ export default function Match() {
     }
   };
 
-  /* ---------- End of innings/match flow ---------- */
+  /* ---------- End of innings/match flow (stays on page) ---------- */
   useEffect(() => {
-    if (currentWicketCount === 10 || ballsCount >= maxBallsInInnings) {
-      // allow UI to update then perform end flow
+    // Trigger end-of-innings once when condition met
+    if ((currentWicketCount === 10 || ballsCount >= maxBallsInInnings) && !inningEndedProcessing) {
       endOfInningsFlow();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -556,109 +565,197 @@ export default function Match() {
     teamBName,
   });
 
+  const resetForNextInnings = (nextBattingTeam) => {
+    // prepare players lists if available in state
+    const aPlayers = teamAPlayersFromState || [];
+    const bPlayers = teamBPlayersFromState || [];
+
+    const newBatsmen =
+      nextBattingTeam === teamAName
+        ? aPlayers.length
+          ? aPlayers.map((p) => ({ name: p, runs: 0, balls: 0, fours: 0, sixes: 0, out: false, howOut: "" }))
+          : getDefaultBatsmen()
+        : bPlayers.length
+        ? bPlayers.map((p) => ({ name: p, runs: 0, balls: 0, fours: 0, sixes: 0, out: false, howOut: "" }))
+        : getDefaultBatsmen();
+
+    const newBowlers =
+      nextBattingTeam === teamAName
+        ? // bowling team will be opposite
+          (bPlayers.length
+            ? bPlayers.map((p) => ({ name: p, balls: 0, runs: 0, wickets: 0, maidens: 0 }))
+            : getDefaultBowlers())
+        : aPlayers.length
+        ? aPlayers.map((p) => ({ name: p, balls: 0, runs: 0, wickets: 0, maidens: 0 }))
+        : getDefaultBowlers();
+
+    setBatsmen(newBatsmen);
+    setBowlers(newBowlers);
+
+    // reset scores
+    setCurrentBattingTeamScore(0);
+    setCurrentWicketCount(0);
+    setBallsCount(0);
+    setOnStrikeIdx(0);
+    setOffStrikeIdx(1);
+    setNextBatsmanNum(2);
+    setCurrentBowlerIdx(0);
+    setBallHistory([]);
+    setLastOverRunsThisBowler(0);
+    setShowBatsmanDropdown(false);
+    setShowBowlerDropdown(false);
+  };
+
   const endOfInningsFlow = async () => {
+    setInningEndedProcessing(true);
+
     try {
-      if (inningsNumber < totalInnings) {
-        if (matchId !== "temp-local") {
-          await api.post(endpoints.inningComplete(matchId), buildInningsPayload());
-        }
-        // navigate to inning summary or reset for next innings
-        navigate("/Test6", {
-          state: {
-            ...summaryState,
-            score: currentBattingTeamScore,
-            wickets: currentWicketCount,
-            overs: oversDisplay,
-            nextInningsNumber: inningsNumber + 1,
-          },
-        });
-      } else {
-        // final innings end — save match summary and go to match-summary
-        if (matchId !== "temp-local") {
-          await api.post(endpoints.matchComplete(matchId), buildInningsPayload());
-        }
-        // Prepare final data
-        const finalData = {
-          ...summaryState,
-          finalScore: currentBattingTeamScore,
-          totalWickets: currentWicketCount,
-          totalOvers: oversDisplay,
-          batsmen,
-          bowlers,
-        };
+      // Build final innings payload for persistence
+      const payload = buildInningsPayload();
 
-        // navigate to match summary page and include finalData
-        navigate("/Test", { state: { matchData: finalData } });
-
-        // Optional auto PDF download (toggleable)
-        if (autoDownloadOnComplete) {
-          // small delay to allow the summary route to render in SPA; if you want server-saved PDF, call backend
-          setTimeout(() => generatePDF(finalData), 500);
+      // Persist to backend if matchId is real
+      if (matchId !== "temp-local") {
+        try {
+          if (inningsNumber < totalInnings) {
+            await api.post(endpoints.inningComplete(matchId), payload);
+          } else {
+            await api.post(endpoints.matchComplete(matchId), payload);
+          }
+        } catch (err) {
+          console.error("Failed to persist innings/match to backend:", err?.message || err);
         }
       }
+
+      // Save this innings to local inningsResults
+      const inningsSummary = {
+        team: currentBattingTeam,
+        score: currentBattingTeamScore,
+        wickets: currentWicketCount,
+        overs: oversDisplay,
+        batsmen: deepClone(batsmen),
+        bowlers: deepClone(bowlers),
+      };
+
+      setInningsResults((prev) => [...prev, inningsSummary]);
+
+      // If there are more innings left, set up next innings locally
+      if (inningsNumber < totalInnings) {
+        const nextInningsNumber = inningsNumber + 1;
+
+        // determine who bats next: simply swap teams
+        const nextBattingTeam = currentBattingTeam === teamAName ? teamBName : teamAName;
+        const nextBowlingTeam = currentBattingTeam === teamAName ? teamAName : teamBName;
+
+        // update state for next innings
+        setInningsNumber(nextInningsNumber);
+        setCurrentBattingTeam(nextBattingTeam);
+        setCurrentBowlingTeam(nextBowlingTeam);
+
+        // reset scoring for next innings
+        resetForNextInnings(nextBattingTeam);
+
+        // allow further play
+        setInningEndedProcessing(false);
+      } else {
+        // final innings ended -> compute winner, show result, and optionally download PDF
+        // Build finalData with all innings
+        const allInnings = [...inningsResults, inningsSummary]; // includes the last innings now
+        const finalData = {
+          matchId,
+          teamAName,
+          teamBName,
+          venueName,
+          tossWonBy,
+          tossDecision,
+          overs: configuredOvers,
+          innings: allInnings,
+        };
+
+        // Compute winner: if both teams have one innings each (typical two-innings limited match)
+        // We'll sum the scores by team across innings array.
+        const teamScores = { [teamAName]: 0, [teamBName]: 0 };
+        allInnings.forEach((inn) => {
+          if (teamScores[inn.team] !== undefined) teamScores[inn.team] += Number(inn.score || 0);
+        });
+
+        let winner = null;
+        let isTie = false;
+        if (teamScores[teamAName] > teamScores[teamBName]) winner = teamAName;
+        else if (teamScores[teamBName] > teamScores[teamAName]) winner = teamBName;
+        else isTie = true;
+
+        const resultObj = {
+          winner,
+          isTie,
+          teamScores,
+          finalData,
+        };
+
+        setFinalResult(resultObj);
+
+        // If auto-download enabled, generate PDF and download
+        if (autoDownloadOnComplete) {
+          // small timeout to let UI render final result
+          setTimeout(() => generatePDF(finalData, resultObj), 300);
+        } else {
+          // still offer a manual download by showing a button in modal/UI
+        }
+
+        // Also (optionally) show a browser alert with winner (explicit request)
+        if (isTie) {
+          // tie
+          window.alert(`Match Completed — It's a TIE! Final aggregate: ${teamAName} ${teamScores[teamAName]} - ${teamBName} ${teamScores[teamBName]}`);
+        } else {
+          window.alert(`Match Completed — Winner: ${winner} (${teamScores[winner]}).`);
+        }
+
+        // If server endpoint expects matchComplete, we already posted above
+        setInningEndedProcessing(false);
+      }
     } catch (err) {
-      console.error("Failed to persist end of innings/match:", err?.message || err);
+      console.error("Error during endOfInningsFlow:", err);
+      setInningEndedProcessing(false);
     }
   };
 
-  /* ---------- PDF generation (captures a DOM element) ---------- */
-  const generatePDF = async (overrideMatchData = null) => {
+  /* ---------- PDF generation (captures a DOM element or builds HTML) ---------- */
+  const generatePDF = async (overrideMatchData = null, resultObj = null) => {
     try {
-      /*
-        We'll render a temporary off-screen node with the summary in case we're calling from this page
-        OR if overrideMatchData is passed (finalData) create a small DOM structure on the fly.
-      */
+      let dataForPdf = null;
       if (overrideMatchData) {
-        // Create a temporary container element
-        const temp = document.createElement("div");
-        temp.style.position = "fixed";
-        temp.style.left = "-9999px";
-        temp.style.top = "0";
-        temp.style.background = "white";
-        temp.style.padding = "20px";
-        temp.setAttribute("id", "pdf-temp-container");
-
-        // Build minimal HTML for PDF based on overrideMatchData
-        temp.innerHTML = buildSummaryHTML(overrideMatchData);
-        document.body.appendChild(temp);
-
-        await captureAndSave(temp, `${overrideMatchData.teamAName}_vs_${overrideMatchData.teamBName}_summary.pdf`);
-
-        // cleanup
-        document.body.removeChild(temp);
+        dataForPdf = overrideMatchData;
       } else {
-        // If there's an element with id 'score-summary' on screen (e.g., match-summary page component),
-        // we'll capture that. Otherwise build an inline summary using current state.
-        const el = document.getElementById("score-summary");
-        if (el) {
-          await captureAndSave(el, `${teamAName}_vs_${teamBName}_summary.pdf`);
-        } else {
-          // build temporary with current state
-          const temp = document.createElement("div");
-          temp.style.position = "fixed";
-          temp.style.left = "-9999px";
-          temp.style.top = "0";
-          temp.style.background = "white";
-          temp.style.padding = "20px";
-          temp.setAttribute("id", "pdf-temp-container");
-          const currentData = {
-            teamAName,
-            teamBName,
-            tossWonBy,
-            tossDecision,
-            venueName,
-            overs: configuredOvers,
-            result: `${currentBattingTeamScore}/${currentWicketCount} (${oversDisplay})`,
-            batsmen,
-            bowlers,
-          };
-          temp.innerHTML = buildSummaryHTML(currentData);
-          document.body.appendChild(temp);
-
-          await captureAndSave(temp, `${teamAName}_vs_${teamBName}_summary.pdf`);
-          document.body.removeChild(temp);
-        }
+        // construct from current state
+        dataForPdf = {
+          teamAName,
+          teamBName,
+          tossWonBy,
+          tossDecision,
+          venueName,
+          overs: configuredOvers,
+          result: `${currentBattingTeamScore}/${currentWicketCount} (${oversDisplay})`,
+          batsmen,
+          bowlers,
+          inningsResults,
+        };
       }
+
+      // Create temp container
+      const temp = document.createElement("div");
+      temp.style.position = "fixed";
+      temp.style.left = "-9999px";
+      temp.style.top = "0";
+      temp.style.background = "white";
+      temp.style.padding = "20px";
+      temp.setAttribute("id", "pdf-temp-container");
+
+      temp.innerHTML = buildSummaryHTMLForPDF(dataForPdf, resultObj);
+      document.body.appendChild(temp);
+
+      await captureAndSave(temp, `${teamAName}_vs_${teamBName}_summary.pdf`);
+
+      // cleanup
+      document.body.removeChild(temp);
     } catch (err) {
       console.error("PDF generation failed:", err);
     }
@@ -681,78 +778,117 @@ export default function Match() {
     pdf.save(filename);
   };
 
-  const buildSummaryHTML = (data) => {
-    // Return a compact styled HTML string representing the summary (used for temporary PDF capture)
-    const { teamAName, teamBName, tossWonBy, tossDecision, venue, overs, result, batsmen = [], bowlers = [] } = data;
-    const safeVenue = venue || venueName || "";
-    const safeOvers = overs || configuredOvers;
+  const buildSummaryHTMLForPDF = (data, resultObj = null) => {
+    // This returns a compact styled HTML string used for temporary PDF capture.
+    // Accepts either current data or the override match object (which may include innings array).
+    const {
+      teamAName: ta = teamAName,
+      teamBName: tb = teamBName,
+      tossWonBy: toss = tossWonBy,
+      tossDecision: tossDec = tossDecision,
+      venueName: venue = venueName,
+      overs: oversVal = configuredOvers,
+      result,
+      batsmen: bats = [],
+      bowlers: bwls = [],
+      innings: inns = [],
+      inningsResults: innsRes = [],
+    } = data || {};
 
-    const batsmenRows = (batsmen || [])
-      .map(
-        (b) =>
-          `<tr>
-            <td style="padding:4px;border:1px solid #ddd">${escapeHtml(b.name || "")}</td>
-            <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.runs || 0}</td>
-            <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.balls || 0}</td>
-            <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.fours || 0}</td>
-            <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.sixes || 0}</td>
-          </tr>`
-      )
-      .join("");
+    const inningsToRender = inns.length ? inns : innsRes.length ? innsRes : [];
 
-    const bowlersRows = (bowlers || [])
-      .map(
-        (b) =>
-          `<tr>
-            <td style="padding:4px;border:1px solid #ddd">${escapeHtml(b.name || "")}</td>
-            <td style="padding:4px;border:1px solid #ddd;text-align:center">${Math.floor((b.balls || 0) / 6)}.${(b.balls || 0) % 6}</td>
-            <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.runs || 0}</td>
-            <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.wickets || 0}</td>
-          </tr>`
-      )
-      .join("");
+    const renderBatsmenTable = (batsList) =>
+      (batsList || [])
+        .map(
+          (b) =>
+            `<tr>
+              <td style="padding:4px;border:1px solid #ddd">${escapeHtml(b.name || "")}</td>
+              <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.runs || 0}</td>
+              <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.balls || 0}</td>
+              <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.fours || 0}</td>
+              <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.sixes || 0}</td>
+            </tr>`
+        )
+        .join("");
+
+    const renderBowlersTable = (bowlList) =>
+      (bowlList || [])
+        .map(
+          (b) =>
+            `<tr>
+              <td style="padding:4px;border:1px solid #ddd">${escapeHtml(b.name || "")}</td>
+              <td style="padding:4px;border:1px solid #ddd;text-align:center">${Math.floor((b.balls || 0) / 6)}.${(b.balls || 0) % 6}</td>
+              <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.runs || 0}</td>
+              <td style="padding:4px;border:1px solid #ddd;text-align:center">${b.wickets || 0}</td>
+            </tr>`
+        )
+        .join("");
+
+    const inningsHtml =
+      inningsToRender.length > 0
+        ? inningsToRender
+            .map(
+              (inn, i) => `
+          <div style="margin-bottom:12px">
+            <h4 style="margin:4px 0">Innings ${i + 1}: ${escapeHtml(inn.team)} — ${inn.score}/${inn.wickets} (${escapeHtml(inn.overs)})</h4>
+            <div style="margin-bottom:6px">
+              <strong>Batting</strong>
+              <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="padding:6px;border:1px solid #ddd">Batsman</th>
+                    <th style="padding:6px;border:1px solid #ddd">Runs</th>
+                    <th style="padding:6px;border:1px solid #ddd">Balls</th>
+                    <th style="padding:6px;border:1px solid #ddd">4s</th>
+                    <th style="padding:6px;border:1px solid #ddd">6s</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${renderBatsmenTable(inn.batsmen || [])}
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <strong>Bowling</strong>
+              <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="padding:6px;border:1px solid #ddd">Bowler</th>
+                    <th style="padding:6px;border:1px solid #ddd">Overs</th>
+                    <th style="padding:6px;border:1px solid #ddd">Runs</th>
+                    <th style="padding:6px;border:1px solid #ddd">Wickets</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${renderBowlersTable(inn.bowlers || [])}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `
+            )
+            .join("")
+        : "";
+
+    // result header (if final result passed)
+    const resultHeader = resultObj
+      ? resultObj.isTie
+        ? `<p style="font-weight:600;color:#d9534f">Match Result: TIE</p>`
+        : `<p style="font-weight:600;color:#28a745">Match Winner: ${escapeHtml(resultObj.winner)}</p>`
+      : "";
 
     return `
-      <div style="font-family: Arial, Helvetica, sans-serif; color:#000; max-width:700px">
+      <div style="font-family: Arial, Helvetica, sans-serif; color:#000; max-width:800px">
         <h2 style="color:#007bff; margin-bottom:6px">Match Summary</h2>
-        <h3 style="margin:2px 0">${escapeHtml(teamAName)} vs ${escapeHtml(teamBName)}</h3>
-        <p style="margin:2px 0"><strong>Venue:</strong> ${escapeHtml(safeVenue)}</p>
-        <p style="margin:2px 0"><strong>Toss:</strong> ${escapeHtml(tossWonBy || "")} chose to ${escapeHtml(tossDecision || "")}</p>
-        <p style="margin:2px 0"><strong>Overs:</strong> ${safeOvers}</p>
-        <p style="margin:2px 0"><strong>Result:</strong> ${escapeHtml(result || "")}</p>
+        <h3 style="margin:2px 0">${escapeHtml(ta)} vs ${escapeHtml(tb)}</h3>
+        <p style="margin:2px 0"><strong>Venue:</strong> ${escapeHtml(venue)}</p>
+        <p style="margin:2px 0"><strong>Toss:</strong> ${escapeHtml(toss || "")} chose to ${escapeHtml(tossDec || "")}</p>
+        <p style="margin:2px 0"><strong>Overs:</strong> ${escapeHtml(String(oversVal))}</p>
+        ${resultHeader}
         <hr />
-        <h4 style="margin-bottom:6px">Batting</h4>
-        <table style="width:100%; border-collapse:collapse; margin-bottom:12px;">
-          <thead>
-            <tr>
-              <th style="padding:6px;border:1px solid #ddd">Batsman</th>
-              <th style="padding:6px;border:1px solid #ddd">Runs</th>
-              <th style="padding:6px;border:1px solid #ddd">Balls</th>
-              <th style="padding:6px;border:1px solid #ddd">4s</th>
-              <th style="padding:6px;border:1px solid #ddd">6s</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${batsmenRows}
-          </tbody>
-        </table>
-
-        <h4 style="margin-bottom:6px">Bowling</h4>
-        <table style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr>
-              <th style="padding:6px;border:1px solid #ddd">Bowler</th>
-              <th style="padding:6px;border:1px solid #ddd">Overs</th>
-              <th style="padding:6px;border:1px solid #ddd">Runs</th>
-              <th style="padding:6px;border:1px solid #ddd">Wickets</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${bowlersRows}
-          </tbody>
-        </table>
-
-        <p style="margin-top:14px;font-size:12px;color:#666">Generated by Your Cricket Scoring App</p>
+        ${inningsHtml}
+        <p style="margin-top:10px;font-size:12px;color:#666">Generated by Your Cricket Scoring App</p>
       </div>
     `;
   };
@@ -797,7 +933,7 @@ export default function Match() {
           <span style={{ fontSize: "2rem", fontWeight: "bold" }}>
             {currentBattingTeamScore}-{currentWicketCount}
           </span>
-          <span style={{ fontSize: "1.1rem" }}>Overs: {oversDisplay}</span>
+          <span style={{ fontSize: "1.1rem", marginLeft: 12 }}>Overs: {oversDisplay}</span>
         </div>
 
         {/* Batsmen */}
@@ -822,7 +958,7 @@ export default function Match() {
             <b>Bowler:</b> {bowlers[currentBowlerIdx]?.name || "Bowler"}
           </span>
           <br />
-          <span>
+          <span style={{ fontSize: 13 }}>
             Overs: {Math.floor((bowlers[currentBowlerIdx]?.balls || 0) / 6)}.
             {(bowlers[currentBowlerIdx]?.balls || 0) % 6} | Runs: {bowlers[currentBowlerIdx]?.runs || 0} | Wickets: {bowlers[currentBowlerIdx]?.wickets || 0} | Maidens: {bowlers[currentBowlerIdx]?.maidens || 0}
           </span>
@@ -923,6 +1059,18 @@ export default function Match() {
         </ul>
       </div>
 
+      {/* Inning results summary (on-page) */}
+      <div style={{ marginTop: 14 }}>
+        <h4>Completed Innings</h4>
+        <ul>
+          {inningsResults.map((ir, i) => (
+            <li key={i}>
+              Innings {i + 1}: {ir.team} — {ir.score}/{ir.wickets} ({ir.overs})
+            </li>
+          ))}
+        </ul>
+      </div>
+
       {/* PDF / options */}
       <div style={{ marginTop: 12 }}>
         <label style={{ marginRight: 8 }}>
@@ -939,13 +1087,35 @@ export default function Match() {
         </button>
       </div>
 
+      {/* Final result modal / box */}
+      {finalResult && (
+        <div className="result-modal" style={modalStyle}>
+          <div style={modalContentStyle}>
+            <h3>Match Completed</h3>
+            {finalResult.isTie ? (
+              <p>It's a TIE! Final aggregate: {teamAName} {finalResult.teamScores[teamAName]} — {teamBName} {finalResult.teamScores[teamBName]}</p>
+            ) : (
+              <p>
+                Winner: <strong>{finalResult.winner}</strong> — Score: {finalResult.teamScores[finalResult.winner]}
+              </p>
+            )}
+            <div style={{ marginTop: 8 }}>
+              <button onClick={() => generatePDF(finalResult.finalData, finalResult)}>Download PDF</button>
+              <button onClick={() => setFinalResult(null)} style={{ marginLeft: 8 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer notes */}
       <div className="help" style={{ marginTop: 18 }}>
         <details>
           <summary>Notes & Tips</summary>
           <ul>
             <li>At the end of each over a snapshot is saved to the server (if matchId is real).</li>
-            <li>When wickets reach 10 or overs complete the inning ends and you are navigated to summary screens.</li>
+            <li>When wickets reach 10 or overs complete the inning ends; the next innings (or final result) will be handled on this page.</li>
             <li>PDF generation captures a clean summary snapshot and downloads it.</li>
           </ul>
         </details>
@@ -953,3 +1123,25 @@ export default function Match() {
     </div>
   );
 }
+
+/* ---------- Simple inline modal styles ---------- */
+const modalStyle = {
+  position: "fixed",
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "rgba(0,0,0,0.4)",
+  zIndex: 9999,
+};
+
+const modalContentStyle = {
+  background: "#fff",
+  padding: 18,
+  borderRadius: 6,
+  minWidth: 320,
+  boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
+};
